@@ -15,5 +15,13 @@
       "macos",
       "contracts"
     ]
+  },
+  {
+    "ts": "2026-06-10T09:24:16.933Z",
+    "lesson": "When a pinned literal collides with markdown table syntax (merge|pr), pin the escaped form (merge\\|pr) with a grep -cF assertion — a raw pipe silently truncates the cell on GitHub.",
+    "tags": [
+      "markdown",
+      "contracts"
+    ]
   }
 ]

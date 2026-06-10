@@ -34,7 +34,7 @@
         "all existing 13 tests still pass"
       ],
       "passes": false,
-      "status": "pending",
+      "status": "in_progress",
       "attempts": 0,
       "contract": null,
       "notes": ""
@@ -85,8 +85,8 @@
         "skills/conductor/SKILL.md documents both merge paths and verdict-in-PR-body",
         "node scripts/validate-repo.mjs passes"
       ],
-      "passes": false,
-      "status": "pending",
+      "passes": true,
+      "status": "passed",
       "attempts": 0,
       "contract": null,
       "notes": ""
@@ -180,6 +180,24 @@
       "verification": [
         "node --test passes with a streaming-parse test (large-file simulation or readline-path unit test)",
         "node scripts/ship-state.mjs cost --transcript test/fixtures/transcript.jsonl output unchanged byte-exact"
+      ],
+      "passes": false,
+      "status": "pending",
+      "attempts": 0,
+      "contract": null,
+      "notes": ""
+    },
+    {
+      "id": "F-011",
+      "title": "pr mode x depends_on: passed-at-PR-creation unblocks dependents whose worktrees branch from main lacking the unmerged dependency — conductor needs stacked-PR or hold-dependents guidance",
+      "type": "feature",
+      "priority": 2,
+      "depends_on": [
+        "F-005"
+      ],
+      "verification": [
+        "skills/conductor/SKILL.md pr-mode path documents dependent gating (branch from the dependency PR branch, or hold dependents until PR merges) with explicit rule text",
+        "node scripts/validate-repo.mjs passes"
       ],
       "passes": false,
       "status": "pending",
