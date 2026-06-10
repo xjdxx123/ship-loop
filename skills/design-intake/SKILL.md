@@ -88,11 +88,35 @@ then write the four files (quoting their PRD verbatim where possible) and derive
 
 ## FREEZE GATE (all paths converge here)
 Present: the four documents + feature count + first-5 execution order + open
-ASSUMPTIONS. Say exactly what autonomy means now: "After freeze I stop asking questions.
-Blockers get parked to NEEDS_HUMAN.md, frozen docs are read-only to the loop
-(spec-conflicts come back to you), and the standing human gate is real-money charges.
-Reply **go** to start the build."
+ASSUMPTIONS + the cost estimate (protocol below). Say exactly what autonomy means now:
+"After freeze I stop asking questions. Blockers get parked to NEEDS_HUMAN.md, frozen
+docs are read-only to the loop (spec-conflicts come back to you), and the standing
+human gate is real-money charges. Reply **go** to start the build."
 On go: create `docs/ship-loop/ACTIVE`, hand off to skills/conductor.
+
+### Cost estimate (quoted with the gate, before go — never after)
+1. **Count**: N = `.total` from `node "$CLAUDE_PLUGIN_ROOT/scripts/ship-state.mjs" stats
+   --dir "$PWD"` — the derived feature_list.json is the only count source, never a hand
+   count (stats exits 1 until the run is done; read stdout, ignore the exit code).
+2. **History**: `~/.claude/ship-loop/profile/cost-history.json` — an append-only JSON
+   array of `{product, features_done, est_tokens_total, ts}`, one record per delivered
+   run, appended by the retrospective (skills/retrospect) from loop-run-log accounting
+   lines. Usable record: `features_done` ≥ 1 and `est_tokens_total` ≥ 1, both finite.
+3. **≥2 usable records**: per-run rate `r = est_tokens_total / features_done`; sort the
+   rates ascending; median `R` = the middle value (even count: mean of the two middle).
+   Quote, figures rounded to 2 significant digits: "~N×R tokens (N features × ~R
+   tokens/feature, median of K runs; range N×min(r)–N×max(r))", plus "≈ D charter-days"
+   (D = N×R / `token_budget_day`, 1 decimal) when the charter carries that row.
+4. **Fewer than 2 usable records** (first run; file missing, unreadable, or malformed —
+   fall back, never crash): say verbatim "no history yet: comparable harnesses measured
+   ~$200 / 6 hours for a full product; small tools land in single-digit dollars" (the
+   README Cost-honesty number).
+5. Either branch, add the pace guess, labeled as one: ~2 implementer/evaluator turns per
+   feature, ~10–30 min wall clock per feature (N×10–N×30 min total) — a guess, not a
+   commitment.
+6. Close verbatim: "This estimate is an offer, not a meter — real metering is the gate's
+   job: `ship-state.mjs cost` totals (F-001) against the charter `token_budget_day`
+   hard-stop (F-002)."
 
 ## Degraded autonomous mode (--autonomous / headless)
 No human available: self-answer every stage using prior-art search + defaults, log every
