@@ -31,6 +31,29 @@ loop implements, *discovers its own bugs*, fixes them, verifies adversarially, a
     with its own maintenance loop attached)
 ```
 
+## Status: it built itself (v0.3.0)
+
+The reference run for this plugin is this repo. v0.3.0 (the trust pack below) was built
+BY ship-loop ON ship-loop: frozen docs, a freeze gate, then 8 autonomous conductor
+rounds — **16/16 features passed, 7 of them discovered mid-run by the evaluators**
+rather than planned (the living list grew 78%). Contract negotiation caught a real
+regex bug before a line of code existed; an evaluator caught the fail-open that would
+have blinded the budget gate on exactly the most expensive sessions. Receipts, not
+claims: [the run story](stories/2026-06-10-v0.3.0-dogfood.md) — including the honest
+part: the run exceeded its own charter budget 2×, because the budget gate was built
+*during* the run and could not arm for it — plus all 16
+[contracts](docs/ship-loop/contracts/) and the
+[round-by-round log](docs/ship-loop/loop-run-log.md).
+
+Versions: **v0.1** core loop (state engine, contracts, adversarial eval, Stop-hook
+gate) · **v0.2** `/ship:iterate` + three-layer self-evolution · **v0.3** developer
+trust pack (cost metering, budget hard-stop, notifications, PR mode, rollback,
+permissions preflight).
+
+Known-untested, honestly: the K=3 repair → park/reset circuit breaker and 3-vote panel
+mode have fixture coverage but have never fired in a production run (16/16 were
+first-attempt passes). The first run on an external product should watch both.
+
 ## Install
 
 ```bash
@@ -60,6 +83,49 @@ Playwright/Chrome MCP when available, `npx playwright` otherwise.
 | `/ship:operate` | post-ship maintenance round (report-only first week) |
 | `/ship:rollback <F-id> "<reason>"` | revert a delivered feature (pr mode: close its PR), reopen it as `pending`, record the learning |
 | `scripts/headless.sh <dir>` | unattended Ralph-style outer loop (degraded design mode) |
+
+## Walkthrough: your first run
+
+1. **Start.** `cd` an empty directory (greenfield) or an existing repo (brownfield —
+   it will audit before asking anything) and run `/ship "your idea"`. Restart your
+   Claude Code session after install so the plugin's Stop hook arms.
+2. **Answer the staged questions.** One document at a time, each ending in your
+   approval: product questions → `PRD.md`; tech questions → `TECH_SPEC.md`; taste
+   questions → `DESIGN_SPEC.md` — be opinionated here, this file literally calibrates
+   the evaluator's rubric; run parameters → `BUILD_CHARTER.md` (budget, parallelism,
+   `merge_strategy: merge|pr`). Profile prefills shorten this from your second run on.
+3. **The freeze gate.** You see: the feature list derived from your documents, the
+   first-5 execution order, a cost estimate (real medians once your profile holds ≥2
+   delivery records; an honest fallback range before that), and the permissions ask —
+   confirm auto-approval is armed or expect a stall on the first prompt. Reply **go**.
+4. **Walk away.** The loop stops asking questions. You get a desktop notification (and
+   optional `SHIP_LOOP_WEBHOOK` POST) only when something needs you: a parked item, a
+   budget pause, a stall, or delivery. `/ship:status` any time for progress, parked
+   items, and spend.
+5. **Where everything lives** — the run is files, not chat history:
+
+   ```
+   docs/ship-loop/
+   ├── PRD.md TECH_SPEC.md DESIGN_SPEC.md BUILD_CHARTER.md   # frozen — yours, loop reads only
+   ├── feature_list.json     # the living queue (engine-owned; bugs outrank features)
+   ├── contracts/F-xxx.md    # what "done" meant, per feature — the audit trail
+   ├── learnings.json        # append-only lessons, injected into future implementers
+   ├── loop-run-log.md       # append-only round accounting
+   ├── NEEDS_HUMAN.md        # your action items (each row fired one notification)
+   ├── HANDOFF.md            # the baton between conductor sessions
+   └── ACTIVE / PAUSED       # lifecycle markers (gate and relay read these)
+   ```
+
+6. **If it pauses on budget:** review spend
+   (`node "$CLAUDE_PLUGIN_ROOT/scripts/ship-state.mjs" cost --transcript <path>`),
+   raise `token_budget_day` in `BUILD_CHARTER.md` (the charter is yours to edit — the
+   loop may not touch it), then `rm docs/ship-loop/PAUSED` and `/ship:resume`.
+7. **Delivery and after.** You get a one-screen handover with evidence, a
+   `launch-checklist.md`, the final `NEEDS_HUMAN.md`, and a generated `LOOP.md` — the
+   product leaves with its own maintenance loop. Then: `/ship:operate` on a schedule
+   (report-only the first week), `/ship:iterate` with a complaint list when you want
+   the next campaign, `/ship:rollback F-xxx "reason"` when something delivered needs
+   to come back out.
 
 ## What makes it a *loop*, not a long prompt
 
@@ -139,6 +205,30 @@ Stop-hook gate hard-stops the run the moment the total exceeds the charter's
 `token_budget_day` (mechanics in the trust pack above). What the money buys: a play
 mode that actually plays, not one that "looks done." Read
 [docs/failure-modes.md](docs/failure-modes.md) before your first unattended run.
+
+### Using the budget
+
+1. **Set** — one charter row: `| token_budget_day | 50000000 | ... |`. Separators are
+   tolerated (`50,000,000`, `50_000_000`); `TBD`, `0`, or deleting the row disables
+   enforcement (fail-open by contract — the gate never crashes a session).
+2. **Calibrate (the part everyone gets wrong)** — the gate's unit is the *transcript
+   total including cache reads*, an order of magnitude above "output tokens" intuition:
+   cache reads dominate Claude Code session volume by design (the budget is a
+   context/spend tripwire, not a billing invoice). Reference point: the 12-hour session
+   that built v0.3.0 measured **187.8M total** by this meter. Calibrate empirically:
+   run one normal session, measure it with `cost --transcript`, set the budget at 2–3×
+   a healthy session's total. The template default is a placeholder, not a
+   recommendation.
+3. **Meter** — automatic: the Stop hook sums the session transcript at every stop.
+   Honest boundaries: the count is per-transcript (relay legs across 5-hour windows
+   each start a fresh count), and it meters the main session (sub-agent burn shows up
+   indirectly, as main-context growth).
+4. **Hard stop** — strictly over budget → one `NEEDS_HUMAN.md` row naming the numbers
+   and the fix, a `PAUSED` marker (the relay self-disarms — no cron necromancy), one
+   notification, and the stop is allowed: stopping is the safe direction when over
+   budget. A paused run never stacks duplicate escalations.
+5. **Resume** — review, raise the charter row, `rm docs/ship-loop/PAUSED`,
+   `/ship:resume`. Three steps, all yours: the loop may not raise its own budget.
 
 ## vs. the alternatives
 

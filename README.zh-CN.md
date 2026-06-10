@@ -6,6 +6,17 @@
 然后自治循环负责实现、**自己发现 bug**、修复、对抗式验收、直至交付 - 提供了 API keys
 就真实部署上线。完整文档见 [README.md](README.md)（英文）。
 
+## 现状：它用自己造了自己（v0.3.0）
+
+本插件的参考运行就是这个仓库：v0.3.0 由 ship-loop 在 ship-loop 上构建——冻结文档、
+冻结门、8 个自治回合，**16/16 features 通过，其中 7 个是 evaluator 实测中自主发现的**
+（活清单膨胀 78%）。合同谈判在写码前抓出真 bug；evaluator 抓出会让预算闸对最贵会话
+失明的 fail-open。凭证而非口号：[运行实录](stories/2026-06-10-v0.3.0-dogfood.md)
+（含诚实部分：该次运行超出自己的 charter 预算 2 倍——预算闸正是这次运行造的，
+来不及为它自己上膛）、全部 16 份[合同](docs/ship-loop/contracts/)与逐轮日志。
+如实声明未实战路径：K=3 熔断与 3 票 panel 仅有 fixture 覆盖（16/16 全是一次通过），
+首个外部产品运行应重点观察。
+
 ## 安装
 
 ```bash
@@ -25,6 +36,24 @@
 | `/ship:pause` / `/ship:resume` | 干净暂停 / 断点续跑 |
 | `/ship:operate` | 交付后的运营环（第一周只报告不动手） |
 | `/ship:rollback <F-id> "<原因>"` | 回滚已交付 feature（pr 模式关 PR），重开为 `pending`，记录 learning |
+
+## 首跑七步
+
+1. 进一个空目录（或已有 repo，会先审计）跑 `/ship "<想法>"`；装完插件先重启会话让 Stop hook 上膛。
+2. 分阶段答题，每份文档单独批：产品 → PRD；技术 → TECH_SPEC；品味 → DESIGN_SPEC
+   （这份文件直接校准 evaluator 的审美，写得有态度）；运行参数 → BUILD_CHARTER。
+3. 冻结门：看派生的任务清单 + 成本预估 + 权限自检（确认 auto-approval 已开），回复 **go**。
+4. 走开。只有需要你时才有桌面通知（parked 项 / 预算暂停 / 空转 / 交付）；随时 `/ship:status`。
+5. 整个 run 是文件不是聊天记录：冻结四文档、`feature_list.json`（活清单）、`contracts/`
+   （逐 feature 的"done 定义"审计链）、`learnings.json`、`loop-run-log.md`、`NEEDS_HUMAN.md`。
+6. 预算暂停时：`cost --transcript` 审账 → 改 charter 的 `token_budget_day`（charter 归你，
+   loop 不许自己加预算）→ `rm docs/ship-loop/PAUSED` → `/ship:resume`。
+7. 交付后：`/ship:operate` 周期巡检（首周只报告）、`/ship:iterate` 带反馈清单开下一轮、
+   `/ship:rollback` 回滚单个 feature。
+
+**预算校准要点**：闸门单位是**含缓存读的 transcript 总量**，比"输出 tokens"直觉大一个
+数量级（构建 v0.3.0 的 12 小时会话实测 187.8M）。先正常跑一次、用 `cost --transcript`
+实测、预算设健康会话的 2-3 倍；模板默认值是占位符不是推荐值。
 
 ## 核心机制
 
