@@ -99,7 +99,8 @@ On go: create `docs/ship-loop/ACTIVE`, hand off to skills/conductor.
 ### Cost estimate (quoted with the gate, before go — never after)
 1. **Count**: N = `.total` from `node "$CLAUDE_PLUGIN_ROOT/scripts/ship-state.mjs" stats
    --dir "$PWD"` — the derived feature_list.json is the only count source, never a hand
-   count (stats exits 1 until the run is done; read stdout, ignore the exit code).
+   count (stats always exits 0 on a readable list — the exit-1-until-done behavior
+   belongs to gate; read stdout).
 2. **History**: `~/.claude/ship-loop/profile/cost-history.json` — an append-only JSON
    array of `{product, features_done, est_tokens_total, ts}`, one record per delivered
    run, appended by the retrospective (skills/retrospect) from loop-run-log accounting
