@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-check
 /**
  * Structural validator for the ship-loop plugin repo. CI gate.
  * Checks manifests, frontmatter, executability, and cross-references.
@@ -8,14 +9,23 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+/** @type {string[]} */
 const errors = [];
+/** @param {string} label check name echoed on success */
 const ok = (label) => process.stdout.write(`  ok ${label}\n`);
+/** @param {string} msg failure recorded for the final report */
 const err = (msg) => errors.push(msg);
 
+/**
+ * Parse a leading YAML frontmatter block into a flat key/value map.
+ * @param {string} path markdown file to inspect
+ * @returns {Record<string, string>|null} null when no frontmatter block
+ */
 function frontmatter(path) {
   const text = readFileSync(path, 'utf8');
   const m = text.match(/^---\n([\s\S]*?)\n---/);
   if (!m) return null;
+  /** @type {Record<string, string>} */
   const fields = {};
   for (const line of m[1].split('\n')) {
     const kv = line.match(/^([A-Za-z-]+):\s*(.*)$/);
@@ -26,6 +36,7 @@ function frontmatter(path) {
 
 // 1. plugin.json
 try {
+  /** @type {Record<string, *>} */
   const p = JSON.parse(readFileSync(join(ROOT, '.claude-plugin', 'plugin.json'), 'utf8'));
   for (const k of ['name', 'version', 'description']) if (!p[k]) err(`plugin.json missing ${k}`);
   ok('plugin.json');
@@ -35,9 +46,11 @@ try {
 
 // 1.5 marketplace.json (single-plugin repos must also be their own marketplace)
 try {
+  /** @type {Record<string, *> & { plugins?: { name?: string, source?: string, version?: string }[] }} */
   const m = JSON.parse(readFileSync(join(ROOT, '.claude-plugin', 'marketplace.json'), 'utf8'));
   if (!m.name || !m.owner || !Array.isArray(m.plugins) || !m.plugins.length)
     err('marketplace.json needs name, owner, plugins[]');
+  /** @type {Record<string, *>} */
   const p = JSON.parse(readFileSync(join(ROOT, '.claude-plugin', 'plugin.json'), 'utf8'));
   const entry = (m.plugins || []).find((x) => x.name === p.name);
   if (!entry) err(`marketplace.json has no entry for plugin "${p.name}"`);
@@ -68,6 +81,7 @@ for (const dir of ['commands', 'agents']) {
 
 // 3. skills frontmatter
 const skillsDir = join(ROOT, 'skills');
+/** @type {Set<string>} */
 const skillNames = new Set();
 if (!existsSync(skillsDir)) err('skills/ missing');
 else {
@@ -133,6 +147,7 @@ if (existsSync(pbDir)) {
 }
 
 // 7. cross-references: skills mentioned in commands exist; templates mentioned in skills exist
+/** @type {string[]} */
 const refErrors = [];
 if (existsSync(join(ROOT, 'commands'))) {
   for (const f of readdirSync(join(ROOT, 'commands')).filter((x) => x.endsWith('.md'))) {
