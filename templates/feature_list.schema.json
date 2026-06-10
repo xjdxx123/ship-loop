@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ship-loop feature list",
+  "type": "object",
+  "required": ["version", "product", "features"],
+  "properties": {
+    "version": { "const": 1 },
+    "product": { "type": "string", "minLength": 1 },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "type", "priority", "depends_on", "verification", "passes", "status", "attempts"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^F-\\d{3,}$" },
+          "title": { "type": "string", "minLength": 1 },
+          "type": { "enum": ["feature", "bug", "hotfix", "spec-conflict"] },
+          "priority": { "enum": [1, 2, 3] },
+          "depends_on": { "type": "array", "items": { "type": "string", "pattern": "^F-\\d{3,}$" } },
+          "verification": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "passes": { "type": "boolean" },
+          "status": { "enum": ["pending", "in_progress", "passed", "parked", "reset"] },
+          "attempts": { "type": "integer", "minimum": 0 },
+          "contract": { "type": ["string", "null"] },
+          "notes": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
