@@ -115,5 +115,21 @@
       "pr-mode",
       "git"
     ]
+  },
+  {
+    "ts": "2026-06-10T11:43:12.672Z",
+    "lesson": "Uniformity that rewrites a frozen surface is a regression, not a cleanup: grep test suites for byte-pinned error messages before generalizing per-command guards into tables — grandfather pinned surfaces out.",
+    "tags": [
+      "contracts",
+      "refactor"
+    ]
+  },
+  {
+    "ts": "2026-06-10T11:43:12.696Z",
+    "lesson": "Re-derive numbers before pinning them; record count+version together when the toolchain floats. Write greps against wrapped source lines — pin the unsplit prefix.",
+    "tags": [
+      "docs",
+      "corrections"
+    ]
   }
 ]

@@ -250,8 +250,8 @@
         "all value-taking flags covered by a table-driven guard + tests",
         "node --test passes; frozen pins survive (4 usage fields x1, timeout 8000, budget gate x2, READ_CHUNK)"
       ],
-      "passes": false,
-      "status": "pending",
+      "passes": true,
+      "status": "passed",
       "attempts": 0,
       "contract": null,
       "notes": ""
@@ -267,8 +267,8 @@
         "docs/ship-loop/contracts/F-008.md gains an appended correction note, original prose preserved",
         "node scripts/validate-repo.mjs passes"
       ],
-      "passes": false,
-      "status": "pending",
+      "passes": true,
+      "status": "passed",
       "attempts": 0,
       "contract": null,
       "notes": ""
