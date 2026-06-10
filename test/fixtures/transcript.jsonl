@@ -1,0 +1,7 @@
+{"type":"assistant","timestamp":"2026-06-10T00:00:01.000Z","message":{"id":"msg_01A","role":"assistant","usage":{"input_tokens":100,"output_tokens":200,"cache_read_input_tokens":300,"cache_creation_input_tokens":400}}}
+{"type":"assistant","timestamp":"2026-06-10T00:00:02.000Z","message":{"id":"msg_01B","role":"assistant","usage":{"input_tokens":11,"output_tokens":22,"cache_read_input_tokens":33,"cache_creation_input_tokens":44}}}
+{"type":"assistant","timestamp":"2026-06-10T00:00:03.000Z","message":{"id":"msg_01C","role":"assistant","usage":{"input_tokens":5,"output_tokens":7}}}
+{"type":"user","timestamp":"2026-06-10T00:00:04.000Z","message":{"role":"user","content":"run the tests"}}
+this line is deliberately not JSON {{{
+
+{"type":"assistant","timestamp":"2026-06-10T00:00:05.000Z","message":{"id":"msg_01D","role":"assistant","usage":{"input_tokens":"9","output_tokens":6,"cache_read_input_tokens":null}}}

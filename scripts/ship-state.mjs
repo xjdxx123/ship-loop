@@ -212,6 +212,46 @@ const cmds = {
     process.exit(stats.done ? 0 : 1);
   },
 
+  /**
+   * Token accounting over a Claude Code session transcript (JSONL).
+   * Sums message.usage counts across every line that parses as JSON and
+   * carries a non-null usage object; a usage field contributes only when it
+   * is a non-negative integer. Fail-safe for the F-002 budget gate: a missing
+   * or unreadable file reports zeros on stdout + one stderr warning, exit 0.
+   * --dir is accepted and ignored; cost never reads feature_list.json.
+   */
+  cost({ transcript }) {
+    if (typeof transcript !== 'string') fail('cost requires --transcript');
+    const totals = { input: 0, output: 0, cache_read: 0, cache_creation: 0, total: 0 };
+    let text = null;
+    try {
+      text = readFileSync(transcript, 'utf8');
+    } catch {
+      process.stderr.write(`ship-state: cost: cannot read transcript at ${transcript}; reporting zeros\n`);
+    }
+    if (text !== null) {
+      const count = (v) => (Number.isInteger(v) && v >= 0 ? v : 0);
+      for (const line of text.split('\n')) {
+        if (!line.trim()) continue;
+        let entry;
+        try {
+          entry = JSON.parse(line);
+        } catch {
+          continue; // tolerate non-JSON lines silently
+        }
+        const msg = entry && typeof entry === 'object' ? entry.message : undefined;
+        const usage = msg && typeof msg === 'object' ? msg.usage : undefined;
+        if (!usage || typeof usage !== 'object') continue;
+        totals.input += count(usage.input_tokens);
+        totals.output += count(usage.output_tokens);
+        totals.cache_read += count(usage.cache_read_input_tokens);
+        totals.cache_creation += count(usage.cache_creation_input_tokens);
+      }
+    }
+    totals.total = totals.input + totals.output + totals.cache_read + totals.cache_creation;
+    process.stdout.write(JSON.stringify(totals, null, 2) + '\n');
+  },
+
   learn({ dir }) {
     if (!dir) fail('learn requires --dir');
     mkdirSync(stateDir(dir), { recursive: true });
