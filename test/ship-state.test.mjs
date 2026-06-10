@@ -1,13 +1,27 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const BIN = join(ROOT, 'scripts', 'ship-state.mjs');
+// F-012 hermeticity (house rule from contract F-002): every engine invocation
+// in this file runs a tmpdir COPY of ship-state.mjs with an appending stub
+// notify.sh beside it. The stall escalation notifies via sibling resolution,
+// so the stub is authoritative and `node --test` can never pop a real desktop
+// notification — even under a buggy gate, even on failing runs. The copy is
+// made fresh from the repo file here, so these tests still pin the repo
+// engine's exact bytes. (gate.sh below still execs the repo engine: it
+// constructs no state at all, so it cannot reach any escalation.)
+const ENGINE_DIR = mkdtempSync(join(tmpdir(), 'shiploop-engine-main-'));
+const BIN = join(ENGINE_DIR, 'ship-state.mjs');
+copyFileSync(join(ROOT, 'scripts', 'ship-state.mjs'), BIN);
+writeFileSync(
+  join(ENGINE_DIR, 'notify.sh'),
+  '#!/usr/bin/env bash\nprintf \'%s\\n%s\\n\' "$1" "$2" >> "$(dirname "$0")/notify.log"\n'
+);
 const GATE = join(ROOT, 'hooks', 'gate.sh');
 
 function run(args, input) {
@@ -156,7 +170,11 @@ test('stop-hook blocks while features remain, allows after 3 stale rounds with e
   const r3 = stopHook(dir); // third consecutive identical state -> allow + escalate
   assert.equal(r3.status, 0);
   assert.equal(r3.stdout.trim(), '');
-  assert.match(readFileSync(join(sd(dir), 'NEEDS_HUMAN.md'), 'utf8'), /stalled/);
+  assert.match(
+    readFileSync(join(sd(dir), 'NEEDS_HUMAN.md'), 'utf8'),
+    // Pinned by contract F-012 (DESIGN_SPEC convention: item, file, next action).
+    /^- \[ \] \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z gate: loop stalled \(1 pending, state unchanged across 3 stop attempts\) — run stopped; inspect docs\/ship-loop\/loop-run-log\.md and docs\/ship-loop\/feature_list\.json, then \/ship:resume to re-enter the round or \/ship:pause to stand down\n$/
+  );
 });
 
 test('stop-hook resets spin counter when state changes', () => {
