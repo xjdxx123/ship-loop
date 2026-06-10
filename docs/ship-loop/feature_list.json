@@ -33,8 +33,8 @@
         "charter row parse tolerates missing token_budget_day (no enforcement, no crash)",
         "all existing 13 tests still pass"
       ],
-      "passes": false,
-      "status": "in_progress",
+      "passes": true,
+      "status": "passed",
       "attempts": 0,
       "contract": null,
       "notes": ""
@@ -198,6 +198,22 @@
       "verification": [
         "skills/conductor/SKILL.md pr-mode path documents dependent gating (branch from the dependency PR branch, or hold dependents until PR merges) with explicit rule text",
         "node scripts/validate-repo.mjs passes"
+      ],
+      "passes": false,
+      "status": "pending",
+      "attempts": 0,
+      "contract": null,
+      "notes": ""
+    },
+    {
+      "id": "F-012",
+      "title": "stall escalation row violates DESIGN_SPEC convention: names the item but not the file nor a concrete next action — align with the budget-row wording",
+      "type": "bug",
+      "priority": 3,
+      "depends_on": [],
+      "verification": [
+        "NEEDS_HUMAN stall row names item, file, and next action (e.g. inspect docs/ship-loop/loop-run-log.md, then /ship:resume or /ship:pause)",
+        "node --test passes with the stall test updated to the new pinned string"
       ],
       "passes": false,
       "status": "pending",

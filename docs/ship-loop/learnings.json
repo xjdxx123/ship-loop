@@ -23,5 +23,14 @@
       "markdown",
       "contracts"
     ]
+  },
+  {
+    "ts": "2026-06-10T09:43:33.944Z",
+    "lesson": "When a contract pins empty stderr, verify by redirecting streams to files — zsh MULTIOS silently tees stdout into 2>&1 1>/dev/null pipelines and fakes phantom stderr bytes.",
+    "tags": [
+      "shell",
+      "zsh",
+      "testing"
+    ]
   }
 ]
