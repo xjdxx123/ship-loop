@@ -58,5 +58,29 @@
       "protocol",
       "conductor"
     ]
+  },
+  {
+    "ts": "2026-06-10T10:29:30.538Z",
+    "lesson": "When frozen contracts grep-pin literals and a new feature needs the same mechanism, extract a shared helper instead of duplicating — landed pins survive byte-exact and the diff doubles as the DRY refactor.",
+    "tags": [
+      "contracts",
+      "refactor"
+    ]
+  },
+  {
+    "ts": "2026-06-10T10:29:30.570Z",
+    "lesson": "ship-state set --status pending leaves passes:true and next() gates dependents on passes — rollback flows must pin --passes false or dependents build on reverted code.",
+    "tags": [
+      "state-engine",
+      "rollback"
+    ]
+  },
+  {
+    "ts": "2026-06-10T10:29:30.597Z",
+    "lesson": "F-006 polish backlog (dormant): --grep id substring collision only past 999 features (fix with --grep \"(<id>):\"); pr-mode gh-absent stop is safe-by-construction but unnamed; multi-match guard worth one line near 4-digit ids.",
+    "tags": [
+      "rollback",
+      "polish"
+    ]
   }
 ]

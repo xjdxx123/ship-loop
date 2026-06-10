@@ -101,8 +101,8 @@
         "commands/ship-rollback.md exists with git revert -m 1 flow, pr-mode branch, state reopen via ship-state set, learning append",
         "node scripts/validate-repo.mjs passes"
       ],
-      "passes": false,
-      "status": "pending",
+      "passes": true,
+      "status": "passed",
       "attempts": 0,
       "contract": null,
       "notes": ""
@@ -215,8 +215,8 @@
         "NEEDS_HUMAN stall row names item, file, and next action (e.g. inspect docs/ship-loop/loop-run-log.md, then /ship:resume or /ship:pause)",
         "node --test passes with the stall test updated to the new pinned string"
       ],
-      "passes": false,
-      "status": "pending",
+      "passes": true,
+      "status": "passed",
       "attempts": 0,
       "contract": null,
       "notes": ""
