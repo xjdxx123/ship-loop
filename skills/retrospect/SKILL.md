@@ -26,6 +26,12 @@ Dispatch the **ship-retrospect** agent; it carries the detailed read/write proto
   confirms with the human at the next run (one line each), applies accepted ones to
   `charter-defaults.json` / `intake-prefills.md` / `routing-overrides.md` /
   `USER_PROFILE.md`, and logs every application to `evolution.log` (append-only).
+  One exception for measurements: after each delivery the retro appends one fact record
+  `{product, features_done, est_tokens_total, ts}` to `cost-history.json` (features_done
+  = X of the final `done X/Y` line in loop-run-log.md; est_tokens_total = the sum of its
+  `est tokens` figures; either missing → append nothing, never a guessed record) —
+  telemetry, not preference, so it skips the proposal queue; design-intake reads it only
+  to quote the pre-freeze cost estimate.
 - **L3 community**: protocol = plugin files, human-PR only, retro may only draft notes;
   playbooks = provider execution knowledge in SKILL.md format (see playbooks/README.md),
   drafted locally after ≥2 successful deliveries, published by human PR.
