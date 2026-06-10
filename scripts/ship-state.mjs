@@ -4,7 +4,8 @@
  * Owns docs/ship-loop/feature_list.json (+ learnings.json, gate markers).
  * Every read and write revalidates the document (anti state-rot).
  */
-import { readFileSync, writeFileSync, renameSync, existsSync, mkdirSync, appendFileSync, unlinkSync } from 'node:fs';
+import { readFileSync, writeFileSync, renameSync, existsSync, mkdirSync, appendFileSync, unlinkSync, openSync, readSync, closeSync } from 'node:fs';
+import { StringDecoder } from 'node:string_decoder';
 import { join, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
@@ -134,38 +135,70 @@ function computeStats(doc) {
  * line that parses as JSON and carries a non-null usage object; a usage field
  * contributes only when it is a non-negative integer. A missing or unreadable
  * transcript yields zeros plus `unreadable: true`; the CALLER owns any
- * warning (`cost` warns on stderr, the stop-hook stays silent). readFileSync
- * stays here until F-010 streams >512MiB transcripts at this one site.
+ * warning (`cost` warns on stderr, the stop-hook stays silent).
+ *
+ * F-010: the file is read synchronously in READ_CHUNK slices (openSync/
+ * readSync) and split into lines by hand — no whole-file string ever exists,
+ * so transcripts past V8's ~512MiB string cap sum correctly instead of
+ * failing open to zeros. StringDecoder keeps a multi-byte UTF-8 character
+ * split across a chunk boundary intact, exactly as a whole-file decode
+ * would. Peak string cost is one line plus one chunk; a single LINE past the
+ * V8 cap stays out of scope and degrades to the pre-F-010 shape (zeros +
+ * unreadable). Any open or read error — even mid-file — reports all-zero
+ * totals, never a partial sum, matching the all-or-nothing whole-file read
+ * this replaces.
  */
+const READ_CHUNK = 65536;
 function sumTranscript(transcript) {
   const totals = { input: 0, output: 0, cache_read: 0, cache_creation: 0, total: 0 };
-  let text = null;
+  const count = (v) => (Number.isInteger(v) && v >= 0 ? v : 0);
+  const addLine = (line) => {
+    if (!line.trim()) return; // blank/whitespace-only lines are skipped silently
+    let entry;
+    try {
+      entry = JSON.parse(line);
+    } catch {
+      return; // tolerate non-JSON lines silently
+    }
+    const msg = entry && typeof entry === 'object' ? entry.message : undefined;
+    const usage = msg && typeof msg === 'object' ? msg.usage : undefined;
+    if (!usage || typeof usage !== 'object') return;
+    totals.input += count(usage.input_tokens);
+    totals.output += count(usage.output_tokens);
+    totals.cache_read += count(usage.cache_read_input_tokens);
+    totals.cache_creation += count(usage.cache_creation_input_tokens);
+  };
+  let unreadable = false;
+  let fd = null;
   try {
-    text = readFileSync(transcript, 'utf8');
+    fd = openSync(transcript, 'r');
+    const decoder = new StringDecoder('utf8');
+    const chunk = Buffer.alloc(READ_CHUNK);
+    let carry = ''; // text after the last newline seen so far — at most one line
+    for (;;) {
+      const n = readSync(fd, chunk, 0, READ_CHUNK, null);
+      if (n === 0) break;
+      const parts = (carry + decoder.write(chunk.subarray(0, n))).split('\n');
+      carry = parts.pop();
+      for (const part of parts) addLine(part);
+    }
+    addLine(carry + decoder.end()); // EOF without a trailing newline still counts its last line
   } catch {
-    /* unreadable: report zeros */
-  }
-  if (text !== null) {
-    const count = (v) => (Number.isInteger(v) && v >= 0 ? v : 0);
-    for (const line of text.split('\n')) {
-      if (!line.trim()) continue;
-      let entry;
+    // unreadable (open failure, EISDIR, or a mid-file read error): report
+    // zeros, never a partial sum — identical to the whole-file read replaced.
+    unreadable = true;
+    totals.input = totals.output = totals.cache_read = totals.cache_creation = 0;
+  } finally {
+    if (fd !== null) {
       try {
-        entry = JSON.parse(line);
+        closeSync(fd);
       } catch {
-        continue; // tolerate non-JSON lines silently
+        /* best-effort */
       }
-      const msg = entry && typeof entry === 'object' ? entry.message : undefined;
-      const usage = msg && typeof msg === 'object' ? msg.usage : undefined;
-      if (!usage || typeof usage !== 'object') continue;
-      totals.input += count(usage.input_tokens);
-      totals.output += count(usage.output_tokens);
-      totals.cache_read += count(usage.cache_read_input_tokens);
-      totals.cache_creation += count(usage.cache_creation_input_tokens);
     }
   }
   totals.total = totals.input + totals.output + totals.cache_read + totals.cache_creation;
-  return { totals, unreadable: text === null };
+  return { totals, unreadable };
 }
 
 const cmds = {
