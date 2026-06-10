@@ -1,6 +1,6 @@
 # Loop State — ship-loop
 
-Last run: 2026-06-10 (v0.2.0 release prep, manual)
+Last run: 2026-06-10 (v0.3.0 dogfood delivery — the loop built itself)
 
 ## High priority (acting / waiting on human)
 - End-to-end dogfood run on a tiny product (now exercising /ship:iterate + retrospective

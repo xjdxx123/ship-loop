@@ -131,5 +131,22 @@
       "docs",
       "corrections"
     ]
+  },
+  {
+    "ts": "2026-06-10T12:09:12.640Z",
+    "lesson": "Recurring negotiation counter-pattern: a Done-means claim without a paired verification command gets tightened every time — narrated checks, free formats (<UTC ISO-8601>), and fixtures where the implementer picks both input and expectation are unfalsifiable; propose claim + command + pinned expected bytes together (F-001/F-002/F-004 each took five such tightenings).",
+    "tags": [
+      "contracts",
+      "negotiation"
+    ]
+  },
+  {
+    "ts": "2026-06-10T12:09:12.702Z",
+    "lesson": "When negotiation pins a defect-class fix on one surface, sweep the siblings in the same diff: F-001 pinned the valueless --transcript usage error while --dir/--id/--status kept crashing with raw TypeError — the unswept class cost a whole discovery feature (F-014).",
+    "tags": [
+      "contracts",
+      "defect-class",
+      "negotiation"
+    ]
   }
 ]
