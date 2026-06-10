@@ -1,9 +1,11 @@
 # Loop State — ship-loop
 
-Last run: 2026-06-10 (initial release prep, manual)
+Last run: 2026-06-10 (v0.2.0 release prep, manual)
 
 ## High priority (acting / waiting on human)
-- v0.1.0 release: end-to-end dogfood run on a tiny product, record it in `stories/`.
+- End-to-end dogfood run on a tiny product (now exercising /ship:iterate + retrospective
+  too), record it in `stories/`.
+- First real playbook: ship a product to Vercel twice, review the distilled draft, publish.
 
 ## Watch list
 - Stop-hook coexistence with users' own Stop hooks (needs reports from real setups).

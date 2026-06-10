@@ -16,7 +16,17 @@ public plugin, and every routing rule is a CATEGORY pattern, not a hardcoded nam
    tooling — record what resolves.
 3. Browser verification path: prefer a connected Chrome/Playwright MCP; fallback
    `npx playwright` via Bash; record which one this machine has.
-4. Write `docs/ship-loop/capability-map.md`: category → best installed match → fallback.
+4. Playbooks: scan the plugin's `playbooks/` and `~/.claude/ship-loop/playbooks/`
+   (drafts) — these slot between official skills and generic fallbacks. Read
+   `~/.claude/ship-loop/profile/routing-overrides.md` for learned preferences.
+5. Write `docs/ship-loop/capability-map.md`: category → best installed match → fallback.
+   Append per-dispatch outcome lines (`<category> | <route> | attempts <n>`) as the run
+   progresses — this is the win-rate evidence the retrospective turns into
+   routing-override proposals.
+
+Priority order everywhere: **official installed skill → verified playbook → draft
+playbook (flagged) → generic agent.** Profile overrides reorder within a tier, never
+across tiers.
 
 ## Routing table (category → match patterns, first hit wins)
 

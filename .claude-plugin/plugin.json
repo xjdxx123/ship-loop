@@ -1,6 +1,6 @@
 {
   "name": "ship-loop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "One command from vague idea (or PRD) to a shipped product: human-rich design intake, then an autonomous build loop with contract-negotiated adversarial verification, a living feature list, and keys-unlocked real deployment.",
   "author": { "name": "Clinton Gao", "url": "https://github.com/xjdxx123" },
   "homepage": "https://github.com/xjdxx123/ship-loop",

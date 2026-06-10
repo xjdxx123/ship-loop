@@ -94,6 +94,26 @@ for (const s of ['relay.sh', 'headless.sh']) {
 }
 ok('runner scripts');
 
+// 6.5 published playbooks carry provenance frontmatter
+const pbDir = join(ROOT, 'playbooks');
+if (existsSync(pbDir)) {
+  for (const p of readdirSync(pbDir).filter((x) => statSync(join(pbDir, x)).isDirectory())) {
+    const sk = join(pbDir, p, 'SKILL.md');
+    if (!existsSync(sk)) {
+      err(`playbooks/${p}/SKILL.md missing`);
+      continue;
+    }
+    const fm = frontmatter(sk);
+    for (const field of ['derived-from', 'providers', 'last-verified', 'success-rate']) {
+      if (!fm || !fm[field]) err(`playbooks/${p}/SKILL.md: provenance frontmatter missing ${field}`);
+    }
+    const body = readFileSync(sk, 'utf8');
+    if (/sk_live_[A-Za-z0-9]|ghp_[A-Za-z0-9]{20}|AKIA[A-Z0-9]{16}/.test(body))
+      err(`playbooks/${p}/SKILL.md: looks like it contains a real secret`);
+  }
+  ok('playbooks provenance');
+}
+
 // 7. cross-references: skills mentioned in commands exist; templates mentioned in skills exist
 const refErrors = [];
 if (existsSync(join(ROOT, 'commands'))) {

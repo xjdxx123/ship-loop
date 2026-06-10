@@ -18,7 +18,9 @@ handoffs beat shared context).
    `feature_list.json` validates (`$SHIP validate`). Missing → back to skills/design-intake.
 2. Touch the marker: `docs/ship-loop/ACTIVE` (this arms the Stop-hook gate). Remove any `PAUSED`.
 3. Read BUILD_CHARTER run parameters: `max_parallel_pairs`, `K`, `negotiation_rounds_max`,
-   `burst_threshold`, `token_budget_day`, `handoff_after_rounds`.
+   `burst_threshold`, `token_budget_day`, `handoff_after_rounds`. If
+   `~/.claude/ship-loop/profile/charter-defaults.json` exists, merge it UNDER the
+   charter (the frozen charter always wins; the profile only fills holes).
 4. Read `HANDOFF.md` if present (you are a relay leg, not a fresh start).
 5. Run capability scan if `capability-map.md` is missing (skills/capability-routing).
 
@@ -50,6 +52,9 @@ handoffs beat shared context).
      never spin on a single feature.
    - `parked[]` items from the implementer → NEEDS_HUMAN.md rows (the four categories:
      money / withheld-secret / irreversible / deadlock).
+   - `needsSpecialist` in the implementer's report → next round, re-dispatch that
+     feature routed per skills/capability-routing (+ profile routing-overrides). You
+     remain the sole dispatcher; the implementer only requests.
 7. **Absorb findings**: every `newFindings` entry → `$SHIP add` (bugs priority-1). The
    feature list is alive; discovery is half the loop's value. Re-validate after adds.
 8. **Account**: append one line to `docs/ship-loop/loop-run-log.md`:

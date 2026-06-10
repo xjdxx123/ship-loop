@@ -15,6 +15,9 @@ Run one operate round for the shipped product in the current project, per its `L
    (top 10), test health. Classify per the flake rule — never silence flakes with code.
 3. **Write state**: update `STATE.md` (priorities, watch list, human inbox) and append
    one line to `loop-run-log.md`.
+3b. **Learn (light)**: dispatch the ship-retrospect agent in light mode
+   (skills/retrospect): project lessons only, plus evidence counters on existing
+   proposals — no new proposals from a single operate round.
 4. **Report**: one screen — what changed since last round, what needs a human, what the
    loop did. Quiet otherwise: notify only when a human decision is required.
 

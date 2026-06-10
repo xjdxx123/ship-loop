@@ -32,8 +32,13 @@ Commit your work in the worktree (descriptive message). Your FINAL message must 
 this JSON — the conductor parses it:
 
 ```json
-{"milestoneId":"F-012","codeComplete":true,"summary":"<2 sentences>","filesTouched":["src/..."],"parked":[],"lesson":"<optional: one transferable lesson for learnings.json>"}
+{"milestoneId":"F-012","codeComplete":true,"summary":"<2 sentences>","filesTouched":["src/..."],"parked":[],"lesson":"<optional: one transferable lesson for learnings.json>","needsSpecialist":"<optional category, e.g. postgres-tuning>"}
 ```
+
+`needsSpecialist`: when you discover the feature is really a specialist's job (heavy
+query tuning, intricate animation work), request — don't hire and don't soldier on. You
+have no dispatch power by design; the conductor re-routes the feature next round. You
+still own this round's honest report.
 
 `codeComplete: true` means "I believe the contract's verification commands pass in this
 worktree" — you must have actually run them. It does NOT mean done: the evaluator decides that.

@@ -54,6 +54,7 @@ Playwright/Chrome MCP when available, `npx playwright` otherwise.
 | `/ship path/to/PRD.md` | PRD intake: asks only about the holes in your document |
 | `/ship` in an existing repo | brownfield: audits your MVP first, then asks refinement direction |
 | `/ship:status` | progress, parked items, budget, next action |
+| `/ship:iterate [feedback.md]` | new campaign on a shipped product: complaints reproduced into bug features, delta questions only, re-freeze, build |
 | `/ship:pause` / `/ship:resume` | clean kill switch / continue from checkpoint |
 | `/ship:operate` | post-ship maintenance round (report-only first week) |
 | `scripts/headless.sh <dir>` | unattended Ralph-style outer loop (degraded design mode) |
@@ -89,6 +90,28 @@ Supabase/Cloudflare/Netlify/Resend) auto-install from the
 [awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills) catalog when a
 gap blocks work; third-party skills are only ever suggested. Everything the machine
 couldn't or wasn't allowed to do lands in `NEEDS_HUMAN.md` with the exact action needed.
+
+## Self-evolution (v0.2)
+
+The loop learns from every run, at three layers with three risk postures:
+
+| Layer | Travels with | What lives there | Autonomy |
+|---|---|---|---|
+| **L1 project** | the repo | this codebase's pitfalls (`learnings.json`) | automatic |
+| **L2 profile** | you (`~/.claude/ship-loop/profile/`) | stack/taste/workflow preferences, charter defaults, learned routing | **proposal-first**: suggestions confirmed at your next intake; every applied change in an append-only `evolution.log` |
+| **L3 community** | the ecosystem | protocol (human-PR only, never self-modified) + **[playbooks/](playbooks/)** — provider execution knowledge in SKILL.md format | drafts distilled locally after ≥2 verified deliveries; published by human PR |
+
+A retrospective agent runs after every delivery: it reads the traces that already exist
+(intake answers, run log, contract churn, verdicts, routing win-rates) and distills them
+upward — one project's fact stays L1, a pattern across ≥2 products becomes an L2
+proposal, a provider shipped twice becomes a playbook draft. Local always beats global;
+prefills are offers, not decisions; the loop's own protocol is design, and the human
+owns design.
+
+The playbook pipeline is the compounding asset: official skills from
+[awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills) are consumed
+first, real delivery evidence turns into provenance-stamped, secret-free playbooks
+(validator-enforced), and every verified delivery makes the next one cheaper.
 
 ## Cost honesty
 

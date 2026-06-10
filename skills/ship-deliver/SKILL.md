@@ -17,7 +17,11 @@ metrics spot-checked; DESIGN_SPEC anti-example sweep. Majority refute → findin
 features, back to the conductor. Pass → continue.
 
 ## 2. Keys scan → real-world actions (aggressive unlock)
-Read `.env` (never print values). Per BUILD_CHARTER table:
+Read `.env` (never print values). For each action, consult execution knowledge in
+priority order: official installed skill → verified playbook (repo `playbooks/` or
+`~/.claude/ship-loop/playbooks/`) → draft playbook (**flag its first live use in the
+handover**) → generic procedure. Log which tier executed each action — the
+retrospective distills playbook drafts from this evidence. Per BUILD_CHARTER table:
 
 | Found | Do |
 |---|---|
@@ -37,9 +41,16 @@ Read `.env` (never print values). Per BUILD_CHARTER table:
   loops, L1 report-only first week, kill criteria, budget.
 - Suggested cron line for `/ship:operate` (do not arm it without the human).
 
-## 4. Handover message (the loop's last words)
+## 4. Retrospective (the loop learns before it sleeps)
+Dispatch the **ship-retrospect** agent in full mode (skills/retrospect): project
+lessons → learnings.json, cross-product patterns → profile proposals, ≥2-delivery
+providers → playbook drafts, protocol ideas → protocol-notes.md. Include its terse
+report in the handover.
+
+## 5. Handover message (the loop's last words)
 One screen: live URL (or "deploy-ready, missing X"), features done/parked counts, test
 + panel evidence summary, the top-3 human actions in order of unlock value, total
-estimated token spend from loop-run-log. Then remove `docs/ship-loop/ACTIVE`.
+estimated token spend from loop-run-log, and the retrospective's one-line learning
+summary. Then remove `docs/ship-loop/ACTIVE`.
 Honesty rule: anything not verified by an executed command or a browser walk is listed
 as unverified — the loop does not round up.
