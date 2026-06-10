@@ -18,7 +18,8 @@ handoffs beat shared context).
    `feature_list.json` validates (`$SHIP validate`). Missing → back to skills/design-intake.
 2. Touch the marker: `docs/ship-loop/ACTIVE` (this arms the Stop-hook gate). Remove any `PAUSED`.
 3. Read BUILD_CHARTER run parameters: `max_parallel_pairs`, `K`, `negotiation_rounds_max`,
-   `burst_threshold`, `token_budget_day`, `handoff_after_rounds`. If
+   `burst_threshold`, `token_budget_day`, `handoff_after_rounds`, `merge_strategy`
+   (`merge` or `pr`; row absent = `merge`). If
    `~/.claude/ship-loop/profile/charter-defaults.json` exists, merge it UNDER the
    charter (the frozen charter always wins; the profile only fills holes).
 4. Read `HANDOFF.md` if present (you are a relay leg, not a fresh start).
@@ -41,9 +42,19 @@ handoffs beat shared context).
    (skills/adversarial-eval). Discard any verdict with empty `commandsRun` and re-dispatch
    the evaluator once with a warning.
 6. **Apply verdict**:
-   - PASS → merge worktree (`git -C "$PRODUCT_DIR" merge --no-ff ship/<id>`), remove
-     worktree, `$SHIP set --id <id> --status passed --passes true`, commit; implementer's
-     `lesson` → `$SHIP learn`.
+   - PASS → apply the charter's `merge_strategy`:
+     - `merge` (default) → merge worktree (`git -C "$PRODUCT_DIR" merge --no-ff ship/<id>`),
+       remove worktree.
+     - `pr` → push the branch (`git -C "$PRODUCT_DIR" push -u origin ship/<id>`), then
+       `gh pr create --head ship/<id> --title "<id>: <feature title>" --body "<verdict>"`
+       where `<verdict>` is the evaluator verdict: the PASS line, its evidence, and a
+       `commandsRun` excerpt — never a bare LGTM. The feature is `passed` at PR creation;
+       merging is the human's (or CI's) act. Remove the worktree (the branch lives on
+       origin). Rollback in pr mode = `gh pr close ship/<id>` + delete the branch —
+       nothing merged, nothing to revert. No `gh` or no `origin` remote → park
+       (withheld-secret), never silently fall back to `merge`.
+     Either path: `$SHIP set --id <id> --status passed --passes true`, commit;
+     implementer's `lesson` → `$SHIP learn`.
    - REJECT → `$SHIP set --id <id> --bump-attempts --note "<evidence>"`; attempts < K →
      re-dispatch implementer with the verdict's evidence; attempts ≥ K → **park**
      (`--status parked`, entry in NEEDS_HUMAN.md with diagnosis) or — if the verdict says
