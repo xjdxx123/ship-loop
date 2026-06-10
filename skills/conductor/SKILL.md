@@ -64,6 +64,20 @@ handoffs beat shared context).
        origin). Rollback in pr mode = `gh pr close ship/<id>` + delete the branch —
        nothing merged, nothing to revert. No `gh` or no `origin` remote → park
        (withheld-secret), never silently fall back to `merge`.
+       - Dependent gating: `passed` flips `passes: true`, so `$SHIP next` rightly
+         starts offering this feature's dependents — but their worktrees branch from
+         main (Dispatch pairs), and main lacks the unmerged PR. Hold them: at Select,
+         filter the `$SHIP next` output — do NOT dispatch a feature whose `depends_on`
+         names a pr-passed feature until, for each such dependency,
+         `gh pr view ship/<dep-id> --json state` shows `MERGED`; anything else (OPEN,
+         CLOSED, no `gh` answer) → treat the unmerged dependency as still-blocking.
+         On `MERGED`, sync first (`git -C "$PRODUCT_DIR" pull --rebase`) so worktrees
+         branch from a main that contains the dependency. The filter is conductor
+         judgment — the engine's `next()` gates on `passes` by design; do not patch
+         it. A hold that empties the round is Select's blockage case; the summary
+         names the PRs awaiting merge. Advanced users may stack by hand (worktree off
+         `ship/<dep-id>`), accepting that a squashed or rebased dependency PR orphans
+         the stack; the loop never stacks.
      Either path: `$SHIP set --id <id> --status passed --passes true`, commit;
      implementer's `lesson` → `$SHIP learn`.
    - REJECT → `$SHIP set --id <id> --bump-attempts --note "<evidence>"`; attempts < K →
