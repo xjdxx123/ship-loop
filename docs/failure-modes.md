@@ -20,6 +20,7 @@ long-running-agents work; ship-loop-specific mitigations noted per row.
 | 12 | Context anxiety / rot in long sessions | coherence degrades over hours | conductor handoff after N rounds; fresh sub-agent contexts per feature; HANDOFF.md is one screen by rule |
 | 13 | Sycophantic QA | evaluator finds a bug, says "fix later", passes it | REJECT default stance; uncertainty = refuted; newFindings are mandatory output, not optional |
 | 14 | Relay necromancy | cron resumes a run the human killed | relay tick checks ACTIVE && !PAUSED and self-disarms otherwise |
+| 15 | Permission-prompt stall | loop stalls mid-build on a tool-permission dialog nobody will click — session alive, zero progress (the gate keeps the session alive; the prompt stops the tool call); the most common unattended failure | F-007 permissions preflight: freeze-gate ask (confirm auto-approval is armed before go) + observable probe at conductor entry (harmless Bash no-op exposes a prompting session) + headless/relay legs pre-armed with `--dangerously-skip-permissions` |
 
 ## Reading traces is the tuning loop
 
