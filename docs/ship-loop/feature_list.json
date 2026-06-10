@@ -1,0 +1,173 @@
+{
+  "version": 1,
+  "product": "ship-loop",
+  "features": [
+    {
+      "id": "F-001",
+      "title": "cost accounting: ship-state.mjs cost subcommand parses session transcript JSONL into cumulative token totals",
+      "type": "feature",
+      "priority": 1,
+      "depends_on": [],
+      "verification": [
+        "node --test passes including new cost tests with a fixture transcript",
+        "node scripts/ship-state.mjs cost --dir . --transcript test/fixtures/transcript.jsonl prints JSON with input/output/total token counts",
+        "fixture includes malformed lines and lines without usage; parser skips them without error"
+      ],
+      "passes": false,
+      "status": "pending",
+      "attempts": 0,
+      "contract": null,
+      "notes": ""
+    },
+    {
+      "id": "F-002",
+      "title": "budget hard-stop: stop-hook reads transcript_path, compares cumulative tokens to charter token_budget_day, pauses run at breach",
+      "type": "feature",
+      "priority": 1,
+      "depends_on": [
+        "F-001"
+      ],
+      "verification": [
+        "stop-hook with over-budget fixture allows stop, appends budget escalation to NEEDS_HUMAN.md, creates PAUSED marker",
+        "stop-hook under budget still blocks normally",
+        "charter row parse tolerates missing token_budget_day (no enforcement, no crash)",
+        "all existing 13 tests still pass"
+      ],
+      "passes": false,
+      "status": "pending",
+      "attempts": 0,
+      "contract": null,
+      "notes": ""
+    },
+    {
+      "id": "F-003",
+      "title": "pre-freeze cost estimate: design-intake freeze gate quotes feature count x historical per-feature cost from profile, with honest first-run fallback range",
+      "type": "feature",
+      "priority": 2,
+      "depends_on": [
+        "F-001"
+      ],
+      "verification": [
+        "skills/design-intake/SKILL.md freeze-gate section contains the estimate protocol and the profile data source",
+        "node scripts/validate-repo.mjs passes"
+      ],
+      "passes": false,
+      "status": "pending",
+      "attempts": 0,
+      "contract": null,
+      "notes": ""
+    },
+    {
+      "id": "F-004",
+      "title": "notify.sh: desktop notification helper (osascript/notify-send/echo fallback, optional SHIP_LOOP_WEBHOOK curl) wired to gate budget-pause, NEEDS_HUMAN appends, and delivery handover",
+      "type": "feature",
+      "priority": 1,
+      "depends_on": [],
+      "verification": [
+        "bash -n scripts/notify.sh",
+        "scripts/notify.sh --test exits 0 on this machine (darwin osascript path)",
+        "grep shows conductor, ship-deliver, and stop-hook docs/code reference notify.sh at the three trigger points"
+      ],
+      "passes": false,
+      "status": "pending",
+      "attempts": 0,
+      "contract": null,
+      "notes": ""
+    },
+    {
+      "id": "F-005",
+      "title": "merge_strategy pr: charter key + conductor PR flow (push ship/<id>, gh pr create with evaluator verdict as body); pr mode rollback = close PR",
+      "type": "feature",
+      "priority": 2,
+      "depends_on": [],
+      "verification": [
+        "templates/BUILD_CHARTER.template.md contains merge_strategy row with merge|pr",
+        "skills/conductor/SKILL.md documents both merge paths and verdict-in-PR-body",
+        "node scripts/validate-repo.mjs passes"
+      ],
+      "passes": false,
+      "status": "pending",
+      "attempts": 0,
+      "contract": null,
+      "notes": ""
+    },
+    {
+      "id": "F-006",
+      "title": "/ship:rollback command: revert a delivered feature merge commit and reopen the feature with a learning",
+      "type": "feature",
+      "priority": 2,
+      "depends_on": [],
+      "verification": [
+        "commands/ship-rollback.md exists with git revert -m 1 flow, pr-mode branch, state reopen via ship-state set, learning append",
+        "node scripts/validate-repo.mjs passes"
+      ],
+      "passes": false,
+      "status": "pending",
+      "attempts": 0,
+      "contract": null,
+      "notes": ""
+    },
+    {
+      "id": "F-007",
+      "title": "permissions preflight: freeze-gate go message and conductor entry check that auto/bypass mode is armed before unattended build",
+      "type": "feature",
+      "priority": 2,
+      "depends_on": [],
+      "verification": [
+        "skills/design-intake/SKILL.md FREEZE GATE includes the permission self-check wording",
+        "skills/conductor/SKILL.md entry checklist includes permission verification step"
+      ],
+      "passes": false,
+      "status": "pending",
+      "attempts": 0,
+      "contract": null,
+      "notes": ""
+    },
+    {
+      "id": "F-008",
+      "title": "types without TS: // @ts-check + JSDoc on scripts/*.mjs, CI typecheck step via npx tsc --noEmit, zero runtime deps",
+      "type": "feature",
+      "priority": 3,
+      "depends_on": [],
+      "verification": [
+        "npx -y typescript@5 tsc --noEmit --allowJs --checkJs --target es2022 --module nodenext scripts/ship-state.mjs scripts/validate-repo.mjs exits 0",
+        "ci.yml contains the typecheck step",
+        "git grep -l @ts-check scripts/ lists both mjs files",
+        "no package.json with runtime dependencies introduced"
+      ],
+      "passes": false,
+      "status": "pending",
+      "attempts": 0,
+      "contract": null,
+      "notes": ""
+    },
+    {
+      "id": "F-009",
+      "title": "v0.3.0 release: README en/zh document cost metering, notifications, pr mode, rollback, preflight; /ship:status shows real cost; version bump + tag",
+      "type": "feature",
+      "priority": 3,
+      "depends_on": [
+        "F-001",
+        "F-002",
+        "F-003",
+        "F-004",
+        "F-005",
+        "F-006",
+        "F-007",
+        "F-008"
+      ],
+      "verification": [
+        "README.md and README.zh-CN.md updated for all five capabilities",
+        "commands/ship-status.md includes real-cost line via cost subcommand",
+        "plugin.json and marketplace.json both 0.3.0 and in sync",
+        "node --test and node scripts/validate-repo.mjs pass",
+        "CI green on pushed main"
+      ],
+      "passes": false,
+      "status": "pending",
+      "attempts": 0,
+      "contract": null,
+      "notes": ""
+    }
+  ]
+}
