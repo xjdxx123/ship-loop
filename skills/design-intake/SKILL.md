@@ -91,7 +91,9 @@ Present: the four documents + feature count + first-5 execution order + open
 ASSUMPTIONS + the cost estimate (protocol below). Say exactly what autonomy means now:
 "After freeze I stop asking questions. Blockers get parked to NEEDS_HUMAN.md, frozen
 docs are read-only to the loop (spec-conflicts come back to you), and the standing
-human gate is real-money charges. Reply **go** to start the build."
+human gate is real-money charges. Build will run unattended: confirm auto-approval is
+armed — auto mode, bypassPermissions, or an allowlist covering Bash/Edit/Write/Agent —
+or expect the loop to stall on the first prompt. Reply **go** to start the build."
 On go: create `docs/ship-loop/ACTIVE`, hand off to skills/conductor.
 
 ### Cost estimate (quoted with the gate, before go — never after)
@@ -117,6 +119,18 @@ On go: create `docs/ship-loop/ACTIVE`, hand off to skills/conductor.
 6. Close verbatim: "This estimate is an offer, not a meter — real metering is the gate's
    job: `ship-state.mjs cost` totals (F-001) against the charter `token_budget_day`
    hard-stop (F-002)."
+
+### Permissions preflight (asked at the gate — no skill can read the mode)
+The Stop-hook gate keeps the SESSION alive; a tool-permission prompt stops the
+individual TOOL CALL — under default permission mode an unattended build stalls on a
+confirmation dialog nobody will click (the most common unattended failure, ahead of
+budget burn). No skill can read the session's permission mode, so the preflight is two
+halves: the gate sentence above (the human confirms before go) and an observable probe
+at conductor entry (skills/conductor entry checklist, the permissions-probe step) that
+detects a prompting session from inside. Note `acceptEdits` auto-approves file edits
+only — Bash still prompts; the conductor probe catches exactly that misread. Headless
+paths are pre-armed: `scripts/headless.sh` and `scripts/relay.sh` pass
+`--dangerously-skip-permissions` on every `claude` invocation.
 
 ## Degraded autonomous mode (--autonomous / headless)
 No human available: self-answer every stage using prior-art search + defaults, log every
