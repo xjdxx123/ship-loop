@@ -201,6 +201,28 @@ function sumTranscript(transcript) {
   return { totals, unreadable };
 }
 
+/**
+ * Best-effort human notification, shared by both gate escalations (budget
+ * pause and stall — F-002/F-012): the single transport call site in this
+ * file. notify.sh is resolved as a sibling of the running engine (correct in
+ * plugin-install and repo-checkout layouts); `bash` as argv0 removes any
+ * exec-bit dependency. The 8s cap is notify.sh's worst legitimate bounded
+ * path (webhook curl -m 5) plus transport slack, per contract F-002; ignored
+ * stdio swallows notify.sh's transport-less stderr fallback so the hook stays
+ * silent on GUI-less machines. Never throws — a missing, broken, or hanging
+ * notify.sh must not change the caller's exit code or output.
+ */
+function notifyHuman(title, body) {
+  try {
+    const notifyPath = join(dirname(fileURLToPath(import.meta.url)), 'notify.sh');
+    if (existsSync(notifyPath)) {
+      spawnSync('bash', [notifyPath, title, body], { stdio: 'ignore', timeout: 8000 });
+    }
+  } catch {
+    /* notification is best-effort */
+  }
+}
+
 const cmds = {
   init({ dir, product }) {
     if (!dir || !product) fail('init requires --dir and --product');
@@ -339,8 +361,11 @@ const cmds = {
    *   clear .gate-spin, notify once, allow. Fail-open: a missing/unparseable
    *   charter row, unreadable transcript, or any internal error means no
    *   enforcement — the hook never crashes or alters anyone's session.
-   * - stall: three consecutive identical states → escalate to NEEDS_HUMAN.md
-   *   and allow the stop.
+   * - stall (F-012): three consecutive identical states → append the
+   *   NEEDS_HUMAN.md escalation (item, files to inspect, next action), clear
+   *   .gate-spin, notify once, allow the stop. No PAUSED is written: a later
+   *   stop re-arms the spin counter, and the human picks /ship:resume or
+   *   /ship:pause. Every step is best-effort — the hook never crashes.
    */
   'stop-hook'() {
     let input = {};
@@ -415,24 +440,11 @@ const cmds = {
       } catch {
         /* already gone */
       }
-      try {
-        // notify.sh resolved as a sibling of the running engine; bash as argv0
-        // removes any exec-bit dependency. Fires after PAUSED is durable.
-        const notifyPath = join(dirname(fileURLToPath(import.meta.url)), 'notify.sh');
-        if (existsSync(notifyPath)) {
-          spawnSync(
-            'bash',
-            [
-              notifyPath,
-              'ship-loop: gate paused (budget)',
-              `NEEDS_HUMAN.md: token budget exceeded (${total} > ${budget} tokens) — raise token_budget_day in docs/ship-loop/BUILD_CHARTER.md, then rm docs/ship-loop/PAUSED`,
-            ],
-            { stdio: 'ignore', timeout: 8000 }
-          );
-        }
-      } catch {
-        /* notification is best-effort */
-      }
+      // Fires after PAUSED is durable.
+      notifyHuman(
+        'ship-loop: gate paused (budget)',
+        `NEEDS_HUMAN.md: token budget exceeded (${total} > ${budget} tokens) — raise token_budget_day in docs/ship-loop/BUILD_CHARTER.md, then rm docs/ship-loop/PAUSED`
+      );
       process.exit(0);
     }
 
@@ -448,15 +460,33 @@ const cmds = {
     }
     spin = spin.hash === hash ? { hash, count: spin.count + 1 } : { hash, count: 1 };
     if (spin.count >= 3) {
-      appendFileSync(
-        join(sd, 'NEEDS_HUMAN.md'),
-        `- [ ] ${new Date().toISOString()} gate: loop stalled (${stats.pending} pending, state unchanged across 3 stop attempts) — human intervention needed\n`
-      );
+      // Stalled (F-012): escalate with the item, the files to inspect, and the
+      // next action (house row shape of the budget escalation above), then
+      // allow the stop. NO PAUSED here — the row's offered actions are real
+      // alternatives, and a later stop in a still-stalled run legitimately
+      // re-arms the spin counter. Each step is individually best-effort:
+      // stopping is the safe direction, so the exit 0 below happens even when
+      // the escalation write fails.
+      try {
+        appendFileSync(
+          join(sd, 'NEEDS_HUMAN.md'),
+          `- [ ] ${new Date().toISOString()} gate: loop stalled (${stats.pending} pending, state unchanged across 3 stop attempts) — run stopped; inspect docs/ship-loop/loop-run-log.md and docs/ship-loop/feature_list.json, then /ship:resume to re-enter the round or /ship:pause to stand down\n`
+        );
+      } catch {
+        /* best-effort */
+      }
       try {
         unlinkSync(spinPath);
       } catch {
         /* already gone */
       }
+      // The conductor cannot notify for this row — a stall is precisely the
+      // conductor going absent — so the gate owns the call (every new
+      // NEEDS_HUMAN.md row notifies, the conductor's Exit convention).
+      notifyHuman(
+        'ship-loop: gate stopped (stall)',
+        `NEEDS_HUMAN.md: loop stalled (${stats.pending} pending, unchanged across 3 stop attempts) — inspect docs/ship-loop/loop-run-log.md, then /ship:resume or /ship:pause`
+      );
       process.exit(0);
     }
     writeFileSync(spinPath, JSON.stringify(spin));
