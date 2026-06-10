@@ -1,0 +1,5 @@
+node_modules/
+.DS_Store
+*.log
+# product-run state (only appears if /ship is dogfooded against this repo itself)
+docs/ship-loop/
