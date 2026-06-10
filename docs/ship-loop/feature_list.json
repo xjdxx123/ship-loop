@@ -163,8 +163,8 @@
         "node --test and node scripts/validate-repo.mjs pass",
         "CI green on pushed main"
       ],
-      "passes": false,
-      "status": "pending",
+      "passes": true,
+      "status": "passed",
       "attempts": 0,
       "contract": null,
       "notes": ""
@@ -284,8 +284,8 @@
         "F-011 and F-005 landed conductor pins still hold",
         "node scripts/validate-repo.mjs passes"
       ],
-      "passes": false,
-      "status": "pending",
+      "passes": true,
+      "status": "passed",
       "attempts": 0,
       "contract": null,
       "notes": ""

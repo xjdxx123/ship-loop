@@ -1,0 +1,1 @@
+- [ ] 2026-06-10T12:01:35Z conductor: charter token_budget_day (1.5M) was exceeded (~3M subagent tokens actual) — the budget gate (F-002) was built DURING this run and could not arm for it (plugin hook loads next session); honest overrun recorded; next run is metered

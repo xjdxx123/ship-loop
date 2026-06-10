@@ -8,3 +8,4 @@
 2026-06-10T11:04:37Z | round 5 done | F-008+F-007 passed+merged | findings F-014+F-015 absorbed | round 6: F-013+F-011
 2026-06-10T11:22:54Z | round 6 done | F-013+F-011 passed+merged | finding F-016 absorbed | round 7: F-014+F-015
 2026-06-10T11:43:12Z | round 7 done | F-014+F-015 passed+merged | round 8 (final): F-016+F-009
+2026-06-10T12:01:35Z | round 8 done | F-016+F-009 passed | GATE PASSED 16/16 (14 passed + 0 parked... recount: 16 passed) | est tokens ~3000000 TOTAL (charter 1500000 EXCEEDED — see NEEDS_HUMAN)
