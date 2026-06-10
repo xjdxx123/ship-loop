@@ -17,13 +17,24 @@ handoffs beat shared context).
 1. Frozen docs exist (PRD/TECH_SPEC/DESIGN_SPEC/BUILD_CHARTER in `docs/ship-loop/`) and
    `feature_list.json` validates (`$SHIP validate`). Missing → back to skills/design-intake.
 2. Touch the marker: `docs/ship-loop/ACTIVE` (this arms the Stop-hook gate). Remove any `PAUSED`.
-3. Read BUILD_CHARTER run parameters: `max_parallel_pairs`, `K`, `negotiation_rounds_max`,
+3. **Permissions probe** — the Stop-hook gate keeps the SESSION alive, but a
+   tool-permission prompt stops the individual TOOL CALL; no skill can read the
+   permission mode, only observe it. Run one harmless Bash no-op:
+   `touch docs/ship-loop/.preflight && rm docs/ship-loop/.preflight`. If that call
+   required manual approval just now, auto-approval is NOT armed — warn the human at
+   the gate, now, instead of discovering it at round 3: "permission prompts are live;
+   unattended, this run stalls at the first prompt. Arm auto-approval (bypassPermissions
+   or an allowlist covering Bash/Edit/Write/Agent) or stay at the keyboard." Whoever
+   approved the probe is present to read it; then continue. No prompt → auto-approval
+   is armed; proceed. Headless and relay legs are pre-armed: `scripts/headless.sh` and
+   `scripts/relay.sh` pass `--dangerously-skip-permissions`.
+4. Read BUILD_CHARTER run parameters: `max_parallel_pairs`, `K`, `negotiation_rounds_max`,
    `burst_threshold`, `token_budget_day`, `handoff_after_rounds`, `merge_strategy`
    (`merge` or `pr`; row absent = `merge`). If
    `~/.claude/ship-loop/profile/charter-defaults.json` exists, merge it UNDER the
    charter (the frozen charter always wins; the profile only fills holes).
-4. Read `HANDOFF.md` if present (you are a relay leg, not a fresh start).
-5. Run capability scan if `capability-map.md` is missing (skills/capability-routing).
+5. Read `HANDOFF.md` if present (you are a relay leg, not a fresh start).
+6. Run capability scan if `capability-map.md` is missing (skills/capability-routing).
 
 ## The round (repeat until gate passes)
 
