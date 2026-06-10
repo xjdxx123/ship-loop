@@ -36,11 +36,12 @@ loop implements, *discovers its own bugs*, fixes them, verifies adversarially, a
 ```bash
 # from the Claude Code REPL
 /plugin marketplace add xjdxx123/ship-loop
-/plugin install ship-loop
+/plugin install ship-loop@ship-loop
 
 # or clone and add as a local marketplace
 git clone https://github.com/xjdxx123/ship-loop
 /plugin marketplace add ./ship-loop
+/plugin install ship-loop@ship-loop
 ```
 
 Requires Claude Code ≥ 2.x and Node 20+. Browser verification uses your connected

@@ -33,6 +33,24 @@ try {
   err(`plugin.json: ${e.message}`);
 }
 
+// 1.5 marketplace.json (single-plugin repos must also be their own marketplace)
+try {
+  const m = JSON.parse(readFileSync(join(ROOT, '.claude-plugin', 'marketplace.json'), 'utf8'));
+  if (!m.name || !m.owner || !Array.isArray(m.plugins) || !m.plugins.length)
+    err('marketplace.json needs name, owner, plugins[]');
+  const p = JSON.parse(readFileSync(join(ROOT, '.claude-plugin', 'plugin.json'), 'utf8'));
+  const entry = (m.plugins || []).find((x) => x.name === p.name);
+  if (!entry) err(`marketplace.json has no entry for plugin "${p.name}"`);
+  else {
+    if (entry.source !== './') err('marketplace.json plugin source must be "./" for this repo');
+    if (entry.version && entry.version !== p.version)
+      err(`version drift: marketplace.json ${entry.version} != plugin.json ${p.version}`);
+  }
+  ok('marketplace.json');
+} catch (e) {
+  err(`marketplace.json: ${e.message}`);
+}
+
 // 2. commands + agents frontmatter
 for (const dir of ['commands', 'agents']) {
   const d = join(ROOT, dir);

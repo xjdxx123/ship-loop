@@ -1,0 +1,16 @@
+{
+  "name": "ship-loop",
+  "owner": { "name": "Clinton Gao", "url": "https://github.com/xjdxx123" },
+  "description": "Marketplace for the ship-loop plugin: one command from vague idea (or PRD) to a shipped, commercializable product.",
+  "plugins": [
+    {
+      "name": "ship-loop",
+      "source": "./",
+      "description": "One command from vague idea (or PRD) to a shipped product: human-rich design intake, then an autonomous build loop with contract-negotiated adversarial verification, a living feature list, self-evolution, and keys-unlocked real deployment.",
+      "version": "0.2.1",
+      "author": { "name": "Clinton Gao", "url": "https://github.com/xjdxx123" },
+      "license": "MIT",
+      "keywords": ["loop-engineering", "autonomous-agents", "claude-code", "ship"]
+    }
+  ]
+}

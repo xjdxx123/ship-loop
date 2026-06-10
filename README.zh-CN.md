@@ -10,7 +10,7 @@
 
 ```bash
 /plugin marketplace add xjdxx123/ship-loop
-/plugin install ship-loop
+/plugin install ship-loop@ship-loop
 ```
 
 ## 使用
