@@ -43,7 +43,7 @@ handoffs beat shared context).
 2. **Select**: `$SHIP next --count <max_parallel_pairs>`. Empty but features remain →
    everything is blocked or parked: write the blockage summary to NEEDS_HUMAN.md and stop.
 3. **Dispatch pairs** (independent features only, one Agent call batch): per feature,
-   create a worktree (`git worktree add ../wt-<id> -b ship/<id>`), mark
+   create a worktree (`git -C "$PRODUCT_DIR" worktree add ../wt-<id> -b ship/<id>`), mark
    `$SHIP set --id <id> --status in_progress`, dispatch **ship-implementer** with:
    feature object + worktree path + contract path. First dispatch is the contract
    proposal leg (skills/contract-negotiation) unless a contract already exists.
