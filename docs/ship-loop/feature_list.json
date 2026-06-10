@@ -117,8 +117,8 @@
         "skills/design-intake/SKILL.md FREEZE GATE includes the permission self-check wording",
         "skills/conductor/SKILL.md entry checklist includes permission verification step"
       ],
-      "passes": false,
-      "status": "pending",
+      "passes": true,
+      "status": "passed",
       "attempts": 0,
       "contract": null,
       "notes": ""
@@ -135,8 +135,8 @@
         "git grep -l @ts-check scripts/ lists both mjs files",
         "no package.json with runtime dependencies introduced"
       ],
-      "passes": false,
-      "status": "pending",
+      "passes": true,
+      "status": "passed",
       "attempts": 0,
       "contract": null,
       "notes": ""
@@ -230,6 +230,41 @@
       "verification": [
         "grep -c \"stats exits 1\" skills/design-intake/SKILL.md returns 0, exit-code attribution corrected to gate",
         "docs/ship-loop/contracts/F-003.md gains an appended correction note (original pin preserved)",
+        "node scripts/validate-repo.mjs passes"
+      ],
+      "passes": false,
+      "status": "pending",
+      "attempts": 0,
+      "contract": null,
+      "notes": ""
+    },
+    {
+      "id": "F-014",
+      "title": "valueless-flag usage errors: --dir/--id/--product/--status flow boolean true into join()/logic crashing with raw TypeError (DESIGN_SPEC bans stack traces); next --count valueless silently prints [] — guard all value-taking flags with house fail() usage errors",
+      "type": "bug",
+      "priority": 2,
+      "depends_on": [],
+      "verification": [
+        "node scripts/ship-state.mjs validate --dir exits 1 with one-line ship-state: usage error, no stack trace",
+        "node scripts/ship-state.mjs next --dir . --count exits 1 with usage error",
+        "all value-taking flags covered by a table-driven guard + tests",
+        "node --test passes; frozen pins survive (4 usage fields x1, timeout 8000, budget gate x2, READ_CHUNK)"
+      ],
+      "passes": false,
+      "status": "pending",
+      "attempts": 0,
+      "contract": null,
+      "notes": ""
+    },
+    {
+      "id": "F-015",
+      "title": "docs polish: failure-modes catalog row for permission-prompt stall (most common unattended failure) + append-only correction note on contracts/F-008.md recording measured tsc error counts (73/81) and tsc patch version",
+      "type": "feature",
+      "priority": 3,
+      "depends_on": [],
+      "verification": [
+        "docs/failure-modes.md contains a permission-prompt stall row with mitigation naming F-007 preflight",
+        "docs/ship-loop/contracts/F-008.md gains an appended correction note, original prose preserved",
         "node scripts/validate-repo.mjs passes"
       ],
       "passes": false,

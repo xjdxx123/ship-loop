@@ -82,5 +82,22 @@
       "rollback",
       "polish"
     ]
+  },
+  {
+    "ts": "2026-06-10T11:04:35.656Z",
+    "lesson": "A typecheck gate that exits 0 before the work exists verifies nothing — pick the smallest compiler dial (noImplicitAny) that machine-enforces the coverage bar, prove it red-first with a probe file.",
+    "tags": [
+      "typescript",
+      "ci",
+      "testing"
+    ]
+  },
+  {
+    "ts": "2026-06-10T11:04:35.681Z",
+    "lesson": "When a skill cannot introspect harness state, design the check as a behavioral probe with a guaranteed audience: the failure detector and the notification channel become the same observation. Anchor prose by step NAME not digit — renumbering breaks digit anchors.",
+    "tags": [
+      "prompt-assets",
+      "design"
+    ]
   }
 ]
