@@ -105,7 +105,7 @@ try {
 }
 
 // 6. runner scripts executable
-for (const s of ['relay.sh', 'headless.sh']) {
+for (const s of ['relay.sh', 'headless.sh', 'notify.sh']) {
   const p = join(ROOT, 'scripts', s);
   if (!existsSync(p)) err(`scripts/${s} missing`);
   else if (!(statSync(p).mode & 0o111)) err(`scripts/${s} not executable`);
