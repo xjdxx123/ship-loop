@@ -52,5 +52,7 @@ One screen: live URL (or "deploy-ready, missing X"), features done/parked counts
 + panel evidence summary, the top-3 human actions in order of unlock value, total
 estimated token spend from loop-run-log, and the retrospective's one-line learning
 summary. Then remove `docs/ship-loop/ACTIVE`.
+Send the handover notification:
+`bash "$CLAUDE_PLUGIN_ROOT/scripts/notify.sh" "ship-loop: <product> delivered" "<live URL | deploy-ready, missing <key>> — launch-checklist.md: <done>/<total> done, <P> parked; next: <top human action>"`.
 Honesty rule: anything not verified by an executed command or a browser walk is listed
 as unverified — the loop does not round up.

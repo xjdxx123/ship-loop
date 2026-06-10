@@ -51,7 +51,8 @@ handoffs beat shared context).
      initializer to re-decompose that feature into smaller ones. Move on either way;
      never spin on a single feature.
    - `parked[]` items from the implementer → NEEDS_HUMAN.md rows (the four categories:
-     money / withheld-secret / irreversible / deadlock).
+     money / withheld-secret / irreversible / deadlock). Every appended row fires one
+     notify.sh call — exact command in Exit.
    - `needsSpecialist` in the implementer's report → next round, re-dispatch that
      feature routed per skills/capability-routing (+ profile routing-overrides). You
      remain the sole dispatcher; the implementer only requests.
@@ -78,5 +79,9 @@ state hash changed this round.
 
 ## Exit
 `$SHIP gate` passes (every feature passed|parked) → proceed to skills/ship-deliver.
-After delivery: remove `docs/ship-loop/ACTIVE`. Notify the human every 5 newly parked
-items (count rows in NEEDS_HUMAN.md), at budget pause, and at delivery — otherwise stay quiet.
+After delivery: remove `docs/ship-loop/ACTIVE`. Notify on EVERY new NEEDS_HUMAN.md row
+at append time (parked feature, blockage summary, or budget pause — one call per row):
+`bash "$CLAUDE_PLUGIN_ROOT/scripts/notify.sh" "ship-loop: <id or gate> parked (<category>)" "NEEDS_HUMAN.md: <one-line next human action>"`.
+The body always names the item, the file, and the next action — never a bare "needs
+attention". The unattended budget gate notifies from the stop-hook (F-002); delivery
+notification is owned by skills/ship-deliver. Otherwise stay quiet.
