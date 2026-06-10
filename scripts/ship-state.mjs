@@ -5,8 +5,10 @@
  * Every read and write revalidates the document (anti state-rot).
  */
 import { readFileSync, writeFileSync, renameSync, existsSync, mkdirSync, appendFileSync, unlinkSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import process from 'node:process';
 
 const TYPES = ['feature', 'bug', 'hotfix', 'spec-conflict'];
@@ -126,6 +128,46 @@ function computeStats(doc) {
   };
 }
 
+/**
+ * Shared transcript token accounting — the single transcript read site, used
+ * by both `cost` and the stop-hook. Sums message.usage counts across every
+ * line that parses as JSON and carries a non-null usage object; a usage field
+ * contributes only when it is a non-negative integer. A missing or unreadable
+ * transcript yields zeros plus `unreadable: true`; the CALLER owns any
+ * warning (`cost` warns on stderr, the stop-hook stays silent). readFileSync
+ * stays here until F-010 streams >512MiB transcripts at this one site.
+ */
+function sumTranscript(transcript) {
+  const totals = { input: 0, output: 0, cache_read: 0, cache_creation: 0, total: 0 };
+  let text = null;
+  try {
+    text = readFileSync(transcript, 'utf8');
+  } catch {
+    /* unreadable: report zeros */
+  }
+  if (text !== null) {
+    const count = (v) => (Number.isInteger(v) && v >= 0 ? v : 0);
+    for (const line of text.split('\n')) {
+      if (!line.trim()) continue;
+      let entry;
+      try {
+        entry = JSON.parse(line);
+      } catch {
+        continue; // tolerate non-JSON lines silently
+      }
+      const msg = entry && typeof entry === 'object' ? entry.message : undefined;
+      const usage = msg && typeof msg === 'object' ? msg.usage : undefined;
+      if (!usage || typeof usage !== 'object') continue;
+      totals.input += count(usage.input_tokens);
+      totals.output += count(usage.output_tokens);
+      totals.cache_read += count(usage.cache_read_input_tokens);
+      totals.cache_creation += count(usage.cache_creation_input_tokens);
+    }
+  }
+  totals.total = totals.input + totals.output + totals.cache_read + totals.cache_creation;
+  return { totals, unreadable: text === null };
+}
+
 const cmds = {
   init({ dir, product }) {
     if (!dir || !product) fail('init requires --dir and --product');
@@ -213,42 +255,17 @@ const cmds = {
   },
 
   /**
-   * Token accounting over a Claude Code session transcript (JSONL).
-   * Sums message.usage counts across every line that parses as JSON and
-   * carries a non-null usage object; a usage field contributes only when it
-   * is a non-negative integer. Fail-safe for the F-002 budget gate: a missing
-   * or unreadable file reports zeros on stdout + one stderr warning, exit 0.
-   * --dir is accepted and ignored; cost never reads feature_list.json.
+   * Token accounting over a Claude Code session transcript (JSONL), summed by
+   * the shared sumTranscript helper. Fail-safe for the F-002 budget gate: a
+   * missing or unreadable file reports zeros on stdout + one stderr warning,
+   * exit 0. --dir is accepted and ignored; cost never reads feature_list.json.
    */
   cost({ transcript }) {
     if (typeof transcript !== 'string') fail('cost requires --transcript');
-    const totals = { input: 0, output: 0, cache_read: 0, cache_creation: 0, total: 0 };
-    let text = null;
-    try {
-      text = readFileSync(transcript, 'utf8');
-    } catch {
+    const { totals, unreadable } = sumTranscript(transcript);
+    if (unreadable) {
       process.stderr.write(`ship-state: cost: cannot read transcript at ${transcript}; reporting zeros\n`);
     }
-    if (text !== null) {
-      const count = (v) => (Number.isInteger(v) && v >= 0 ? v : 0);
-      for (const line of text.split('\n')) {
-        if (!line.trim()) continue;
-        let entry;
-        try {
-          entry = JSON.parse(line);
-        } catch {
-          continue; // tolerate non-JSON lines silently
-        }
-        const msg = entry && typeof entry === 'object' ? entry.message : undefined;
-        const usage = msg && typeof msg === 'object' ? msg.usage : undefined;
-        if (!usage || typeof usage !== 'object') continue;
-        totals.input += count(usage.input_tokens);
-        totals.output += count(usage.output_tokens);
-        totals.cache_read += count(usage.cache_read_input_tokens);
-        totals.cache_creation += count(usage.cache_creation_input_tokens);
-      }
-    }
-    totals.total = totals.input + totals.output + totals.cache_read + totals.cache_creation;
     process.stdout.write(JSON.stringify(totals, null, 2) + '\n');
   },
 
@@ -280,10 +297,17 @@ const cmds = {
 
   /**
    * Claude Code Stop hook. Reads hook JSON on stdin.
-   * Silent (exit 0, no output) in every situation except: an active, unpaused,
+   * Silent (exit 0, no output) in every situation except an active, unpaused,
    * unfinished run with fresh state — then it emits {"decision":"block"} so the
-   * conductor keeps looping. Three consecutive identical states = stall →
-   * escalate to NEEDS_HUMAN.md and allow the stop.
+   * conductor keeps looping. Two escalations allow the stop instead:
+   * - budget gate (F-002): this session's transcript token total (hook stdin's
+   *   transcript_path, summed by sumTranscript) strictly exceeds the charter's
+   *   token_budget_day → append the NEEDS_HUMAN.md escalation, write PAUSED,
+   *   clear .gate-spin, notify once, allow. Fail-open: a missing/unparseable
+   *   charter row, unreadable transcript, or any internal error means no
+   *   enforcement — the hook never crashes or alters anyone's session.
+   * - stall: three consecutive identical states → escalate to NEEDS_HUMAN.md
+   *   and allow the stop.
    */
   'stop-hook'() {
     let input = {};
@@ -306,6 +330,78 @@ const cmds = {
     }
     const stats = computeStats(doc);
     if (stats.done) process.exit(0);
+
+    // Budget enforcement (F-002), evaluated only here — after every
+    // pre-existing allow/skip check above, before the spin-stall logic below.
+    let breach = null;
+    try {
+      const tp = input.transcript_path;
+      if (typeof tp === 'string' && tp) {
+        let budget = 0;
+        try {
+          const charter = readFileSync(join(sd, 'BUILD_CHARTER.md'), 'utf8');
+          // First MATCHING row wins. Horizontal whitespace ([ \t]) only —
+          // \s would cross the newline and borrow digits from the next line.
+          const m = /^[ \t]*\|[ \t]*token_budget_day[ \t]*\|[ \t]*([0-9][0-9_,]*)/m.exec(charter);
+          if (m) {
+            const v = Number(m[1].replace(/[,_]/g, ''));
+            if (Number.isSafeInteger(v) && v >= 1) budget = v;
+          }
+        } catch {
+          /* charter missing or unreadable: no enforcement */
+        }
+        if (budget >= 1) {
+          const { totals } = sumTranscript(tp); // silent: no stderr from the hook path
+          if (totals.total > budget) breach = { total: totals.total, budget };
+        }
+      }
+    } catch {
+      /* unexpected internal error: no enforcement — never break someone's session */
+    }
+    if (breach) {
+      // Over budget: pause the run, then allow the stop. Each step is
+      // individually best-effort — stopping is the safe direction, so the
+      // exit 0 below happens even when every write fails.
+      const { total, budget } = breach;
+      const ts = new Date().toISOString();
+      try {
+        appendFileSync(
+          join(sd, 'NEEDS_HUMAN.md'),
+          `- [ ] ${ts} gate: token budget exceeded (${total} tokens > token_budget_day ${budget}) — run paused; review spend, then raise token_budget_day in docs/ship-loop/BUILD_CHARTER.md and rm docs/ship-loop/PAUSED to resume\n`
+        );
+      } catch {
+        /* best-effort */
+      }
+      try {
+        writeFileSync(join(sd, 'PAUSED'), `token budget exceeded: ${total} > ${budget} at ${ts}\n`);
+      } catch {
+        /* best-effort */
+      }
+      try {
+        unlinkSync(join(sd, '.gate-spin')); // a resume must not inherit a phantom stall count
+      } catch {
+        /* already gone */
+      }
+      try {
+        // notify.sh resolved as a sibling of the running engine; bash as argv0
+        // removes any exec-bit dependency. Fires after PAUSED is durable.
+        const notifyPath = join(dirname(fileURLToPath(import.meta.url)), 'notify.sh');
+        if (existsSync(notifyPath)) {
+          spawnSync(
+            'bash',
+            [
+              notifyPath,
+              'ship-loop: gate paused (budget)',
+              `NEEDS_HUMAN.md: token budget exceeded (${total} > ${budget} tokens) — raise token_budget_day in docs/ship-loop/BUILD_CHARTER.md, then rm docs/ship-loop/PAUSED`,
+            ],
+            { stdio: 'ignore', timeout: 8000 }
+          );
+        }
+      } catch {
+        /* notification is best-effort */
+      }
+      process.exit(0);
+    }
 
     const hash = createHash('sha256').update(readFileSync(flPath(cwd))).digest('hex');
     const spinPath = join(sd, '.gate-spin');
