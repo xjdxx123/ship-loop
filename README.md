@@ -58,6 +58,7 @@ Playwright/Chrome MCP when available, `npx playwright` otherwise.
 | `/ship:iterate [feedback.md]` | new campaign on a shipped product: complaints reproduced into bug features, delta questions only, re-freeze, build |
 | `/ship:pause` / `/ship:resume` | clean kill switch / continue from checkpoint |
 | `/ship:operate` | post-ship maintenance round (report-only first week) |
+| `/ship:rollback <F-id> "<reason>"` | revert a delivered feature (pr mode: close its PR), reopen it as `pending`, record the learning |
 | `scripts/headless.sh <dir>` | unattended Ralph-style outer loop (degraded design mode) |
 
 ## What makes it a *loop*, not a long prompt
@@ -114,14 +115,30 @@ The playbook pipeline is the compounding asset: official skills from
 first, real delivery evidence turns into provenance-stamped, secret-free playbooks
 (validator-enforced), and every verified delivery makes the next one cheaper.
 
+## Developer trust pack (v0.3)
+
+Five mechanisms for handing an unattended loop your repo and your token budget — each
+one shipped behavior you can read in this repo, none of it aspiration:
+
+| Capability | What actually happens | Mechanism |
+|---|---|---|
+| **Cost metering** | `ship-state.mjs cost --transcript <path>` sums per-message `usage` token counts from the session transcript (JSONL) into five totals — input, output, cache read, cache creation, total — read in chunks, so transcripts past V8's ~512 MiB string cap still sum instead of failing to zeros. The Stop-hook gate runs the same sum against the charter's `token_budget_day`: over budget → `NEEDS_HUMAN.md` escalation row, `PAUSED` marker, one notification, stop allowed. Fail-open: a missing charter row or unreadable transcript means no enforcement, never a crashed session | [`scripts/ship-state.mjs`](scripts/ship-state.mjs) (`cost`, `stop-hook`) |
+| **Notifications** | desktop banner (macOS `osascript`, Linux `notify-send`, stderr echo fallback) plus an optional `SHIP_LOOP_WEBHOOK` JSON POST — fired on every new `NEEDS_HUMAN.md` row, budget pause, stall, and delivery. Transport only: the body always names the item, the file, and the next action, and every path exits 0, so a failed notification never breaks the loop | [`scripts/notify.sh`](scripts/notify.sh) |
+| **PR mode** | charter row `merge_strategy: pr` → a passed feature is pushed as `ship/<id>` and opened as a PR whose body is the evaluator's verdict (PASS line, evidence, `commandsRun` excerpt — never a bare LGTM). Merging stays the human's (or CI's) act; dependent features are held until the dependency's PR is `MERGED`. No `gh` or no `origin` remote → the feature parks, never a silent fallback to direct merge | [`skills/conductor/SKILL.md`](skills/conductor/SKILL.md) |
+| **Rollback** | `/ship:rollback <F-id> "<reason>"` reverts the delivery merge (`git revert -m 1`; pr mode: close the PR — nothing merged, nothing to revert), reopens the feature as `pending` with `--passes false` so dependents stop counting it as satisfied, and records the learning. Refuses a dirty tree, never guesses a hash, never auto-resolves conflicts | [`commands/ship-rollback.md`](commands/ship-rollback.md) |
+| **Permissions preflight** | the most common unattended failure is a tool-permission dialog nobody will click (the gate keeps the session alive; the prompt stops the tool call). Three-part mitigation: the freeze gate has you confirm auto-approval is armed before `go`, the conductor probes at entry with a harmless Bash no-op that exposes a prompting session, and headless/relay legs pass `--dangerously-skip-permissions` | [`skills/design-intake/SKILL.md`](skills/design-intake/SKILL.md) + [`skills/conductor/SKILL.md`](skills/conductor/SKILL.md) |
+
 ## Cost honesty
 
 Loops are not cheap. Anthropic's comparable internal harness measured **~$200 / 6 hours**
 for a full product build; small tools cost single-digit dollars. The charter carries a
 daily token budget and the conductor accounts every round; over budget → checkpoint and
-pause, never silent burn. What the money buys: a play mode that actually plays, not one
-that "looks done." Read [docs/failure-modes.md](docs/failure-modes.md) before your first
-unattended run.
+pause, never silent burn. Since v0.3 that budget is metered, not estimated:
+`ship-state.mjs cost` sums real token usage from the session transcript, and the
+Stop-hook gate hard-stops the run the moment the total exceeds the charter's
+`token_budget_day` (mechanics in the trust pack above). What the money buys: a play
+mode that actually plays, not one that "looks done." Read
+[docs/failure-modes.md](docs/failure-modes.md) before your first unattended run.
 
 ## vs. the alternatives
 
@@ -137,7 +154,7 @@ unattended run.
 ## Architecture & docs
 
 - [docs/architecture.md](docs/architecture.md) — the layered loop, with lineage table
-- [docs/failure-modes.md](docs/failure-modes.md) — 14 ways loops die and what's load-bearing here
+- [docs/failure-modes.md](docs/failure-modes.md) — 15 ways loops die and what's load-bearing here
 - [docs/superpowers/specs/](docs/superpowers/specs/) — the full design spec this was built from
 - [LOOP.md](LOOP.md) / [STATE.md](STATE.md) — this repo dogfoods its own operate phase
 - [stories/](stories/) — honest run records (token cost required, failures welcome)
