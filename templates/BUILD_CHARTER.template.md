@@ -14,6 +14,7 @@
 | burst_threshold | 8 | ≥N independent pure-code features → may delegate batch to a Workflow script (UI verification always returns to the main loop) |
 | token_budget_day | 2000000 | estimate; conductor accounts per round; over → checkpoint + pause + NEEDS_HUMAN |
 | handoff_after_rounds | 10 | conductor writes HANDOFF.md and relays |
+| merge_strategy | merge | merge\|pr. pr: push `ship/<id>`, `gh pr create` with the evaluator verdict (evidence + commandsRun excerpt) as body; the feature is `passed` at PR creation — merging is the human's (or CI's) act. Rollback in pr mode = close the PR. |
 
 ## Denylist (the loop must never edit)
 
