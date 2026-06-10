@@ -1,0 +1,31 @@
+name: weekly-triage
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * 1"
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for API key
+        id: key
+        run: |
+          if [ -n "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No ANTHROPIC_API_KEY secret - triage skipped (expected on forks)."
+          fi
+      - name: Run L1 triage (report only)
+        if: steps.key.outputs.present == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude -p "L1 report-only triage for this repository per LOOP.md: read open issues and PRs via gh, check dependency advisories, summarize findings as a markdown report. Do NOT modify any files." \
+            --allowedTools "Bash(gh:*) Read Glob Grep" || echo "triage run failed (non-blocking)"

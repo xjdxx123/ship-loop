@@ -108,7 +108,8 @@ if (existsSync(skillsDir)) {
   for (const s of skillNames) {
     const text = readFileSync(join(skillsDir, s, 'SKILL.md'), 'utf8');
     for (const m of text.matchAll(/templates\/([A-Za-z0-9_.-]+)/g)) {
-      if (!existsSync(join(ROOT, 'templates', m[1]))) refErrors.push(`skills/${s} references missing templates/${m[1]}`);
+      const name = m[1].replace(/\.+$/, '');
+      if (!existsSync(join(ROOT, 'templates', name))) refErrors.push(`skills/${s} references missing templates/${name}`);
     }
   }
 }

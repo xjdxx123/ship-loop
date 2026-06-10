@@ -1,0 +1,20 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Unit tests (state engine + stop-hook gate)
+        run: node --test
+      - name: Structural validation (manifests, frontmatter, cross-references)
+        run: node scripts/validate-repo.mjs
+      - name: Shell syntax
+        run: bash -n hooks/gate.sh scripts/relay.sh scripts/headless.sh
