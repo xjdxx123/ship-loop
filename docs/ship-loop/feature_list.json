@@ -13,8 +13,8 @@
         "node scripts/ship-state.mjs cost --dir . --transcript test/fixtures/transcript.jsonl prints JSON with input/output/total token counts",
         "fixture includes malformed lines and lines without usage; parser skips them without error"
       ],
-      "passes": false,
-      "status": "pending",
+      "passes": true,
+      "status": "passed",
       "attempts": 0,
       "contract": null,
       "notes": ""
@@ -68,8 +68,8 @@
         "scripts/notify.sh --test exits 0 on this machine (darwin osascript path)",
         "grep shows conductor, ship-deliver, and stop-hook docs/code reference notify.sh at the three trigger points"
       ],
-      "passes": false,
-      "status": "pending",
+      "passes": true,
+      "status": "passed",
       "attempts": 0,
       "contract": null,
       "notes": ""
@@ -162,6 +162,24 @@
         "plugin.json and marketplace.json both 0.3.0 and in sync",
         "node --test and node scripts/validate-repo.mjs pass",
         "CI green on pushed main"
+      ],
+      "passes": false,
+      "status": "pending",
+      "attempts": 0,
+      "contract": null,
+      "notes": ""
+    },
+    {
+      "id": "F-010",
+      "title": "cost fails open on transcripts exceeding V8 string limit (~512MiB): longest sessions read as zero spend, evading the budget tripwire — switch to streaming line reads (node:readline)",
+      "type": "bug",
+      "priority": 2,
+      "depends_on": [
+        "F-001"
+      ],
+      "verification": [
+        "node --test passes with a streaming-parse test (large-file simulation or readline-path unit test)",
+        "node scripts/ship-state.mjs cost --transcript test/fixtures/transcript.jsonl output unchanged byte-exact"
       ],
       "passes": false,
       "status": "pending",
