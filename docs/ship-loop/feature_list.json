@@ -199,8 +199,8 @@
         "skills/conductor/SKILL.md pr-mode path documents dependent gating (branch from the dependency PR branch, or hold dependents until PR merges) with explicit rule text",
         "node scripts/validate-repo.mjs passes"
       ],
-      "passes": false,
-      "status": "pending",
+      "passes": true,
+      "status": "passed",
       "attempts": 0,
       "contract": null,
       "notes": ""
@@ -232,8 +232,8 @@
         "docs/ship-loop/contracts/F-003.md gains an appended correction note (original pin preserved)",
         "node scripts/validate-repo.mjs passes"
       ],
-      "passes": false,
-      "status": "pending",
+      "passes": true,
+      "status": "passed",
       "attempts": 0,
       "contract": null,
       "notes": ""
@@ -265,6 +265,23 @@
       "verification": [
         "docs/failure-modes.md contains a permission-prompt stall row with mitigation naming F-007 preflight",
         "docs/ship-loop/contracts/F-008.md gains an appended correction note, original prose preserved",
+        "node scripts/validate-repo.mjs passes"
+      ],
+      "passes": false,
+      "status": "pending",
+      "attempts": 0,
+      "contract": null,
+      "notes": ""
+    },
+    {
+      "id": "F-016",
+      "title": "one-token hardening: conductor Dispatch pairs worktree add lacks -C \"$PRODUCT_DIR\" unlike all sibling git commands — CWD drift cuts dependents from wrong HEAD, partially undoing F-011 sync-before-cut",
+      "type": "bug",
+      "priority": 3,
+      "depends_on": [],
+      "verification": [
+        "skills/conductor/SKILL.md Dispatch pairs pins git -C \"$PRODUCT_DIR\" worktree add",
+        "F-011 and F-005 landed conductor pins still hold",
         "node scripts/validate-repo.mjs passes"
       ],
       "passes": false,

@@ -99,5 +99,21 @@
       "prompt-assets",
       "design"
     ]
+  },
+  {
+    "ts": "2026-06-10T11:22:54.224Z",
+    "lesson": "Append-only contract corrections must paraphrase the false text, never quote it — quoting reintroduces the grep-target phrase; pin per-file counts separately so cleanup greps and append-only never conflict.",
+    "tags": [
+      "contracts",
+      "corrections"
+    ]
+  },
+  {
+    "ts": "2026-06-10T11:22:54.253Z",
+    "lesson": "passed-at-PR-creation splits state truth from workspace truth: dependency gates must check where worktrees are CUT from, and the unblock rule must pin the sync command or the fix only moves the hole.",
+    "tags": [
+      "pr-mode",
+      "git"
+    ]
   }
 ]
