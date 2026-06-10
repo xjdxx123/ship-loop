@@ -96,7 +96,8 @@ function fail(msg) {
 /**
  * Split argv into the subcommand and its --flags. A flag followed by a
  * non-flag token takes that token as its value; a trailing or valueless flag
- * is boolean true — each command declares which value shapes it accepts.
+ * is boolean true — each command declares which value shapes it accepts, and
+ * dispatch rejects boolean true for the command's VALUE_FLAGS entries (F-014).
  * @param {string[]} argv
  * @returns {{ cmd: string|undefined, flags: Record<string, *> }}
  */
@@ -116,6 +117,38 @@ function parseArgs(argv) {
   }
   return { cmd, flags };
 }
+
+/**
+ * F-014: per-command value-requiring flags, rejected at dispatch when
+ * parseArgs yields boolean true (flag present, no value). Unguarded, that
+ * shape either crashed join() with a raw TypeError (--dir and friends —
+ * DESIGN_SPEC's bar is a one-line actionable message, never a stack trace)
+ * or silently misread state (valueless `next --count` printed [], valueless
+ * `set --passes` flipped a feature to passing). Deliberately NOT listed:
+ * set --bump-attempts (boolean true IS its valid form), cost --transcript
+ * (its own typeof guard already rejects absent and valueless alike with the
+ * frozen contract-F-001 message), cost --dir (accepted and ignored per
+ * F-001), and stop-hook (flagless; reads hook JSON on stdin and must never
+ * fail a session — F-002/F-012).
+ * @type {Record<string, string[]>}
+ */
+const VALUE_FLAGS = {
+  init: ['dir', 'product'],
+  validate: ['dir'],
+  add: ['dir'],
+  next: ['dir', 'count'],
+  set: ['dir', 'id', 'status', 'passes', 'note'],
+  stats: ['dir'],
+  gate: ['dir'],
+  learn: ['dir'],
+  lessons: ['dir', 'grep'],
+};
+
+/**
+ * One-line usage error for a value-requiring flag passed valueless (F-014).
+ * @param {string} cmd @param {string} flag @returns {never}
+ */
+const usageError = (cmd, flag) => fail(`${cmd}: --${flag} requires a value`);
 
 /** @param {string} dir product root @returns {string} the docs/ship-loop state dir */
 const stateDir = (dir) => join(dir, 'docs', 'ship-loop');
@@ -432,7 +465,9 @@ const cmds = {
 
   /**
    * Mutate one feature: status, passes, an appended note, an attempt bump.
-   * @param {{ dir?: string, id?: string, status?: Status, passes?: string|boolean, note?: string, 'bump-attempts'?: string|boolean }} flags
+   * Value flags reaching here are strings (dispatch VALUE_FLAGS guard);
+   * --bump-attempts stays string|boolean — valueless is its valid form.
+   * @param {{ dir?: string, id?: string, status?: Status, passes?: string, note?: string, 'bump-attempts'?: string|boolean }} flags
    */
   set({ dir, id, status, passes, note, 'bump-attempts': bump }) {
     if (!dir || !id) fail('set requires --dir and --id');
@@ -677,4 +712,5 @@ const cmds = {
 
 const { cmd, flags } = parseArgs(process.argv.slice(2));
 if (!cmd || !cmds[cmd]) fail(`usage: ship-state.mjs <${Object.keys(cmds).join('|')}> [--flags]`);
+for (const flag of VALUE_FLAGS[cmd] ?? []) if (flags[flag] === true) usageError(cmd, flag);
 cmds[cmd](flags);
