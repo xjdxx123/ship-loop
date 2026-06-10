@@ -51,8 +51,8 @@
         "skills/design-intake/SKILL.md freeze-gate section contains the estimate protocol and the profile data source",
         "node scripts/validate-repo.mjs passes"
       ],
-      "passes": false,
-      "status": "pending",
+      "passes": true,
+      "status": "passed",
       "attempts": 0,
       "contract": null,
       "notes": ""
@@ -181,8 +181,8 @@
         "node --test passes with a streaming-parse test (large-file simulation or readline-path unit test)",
         "node scripts/ship-state.mjs cost --transcript test/fixtures/transcript.jsonl output unchanged byte-exact"
       ],
-      "passes": false,
-      "status": "pending",
+      "passes": true,
+      "status": "passed",
       "attempts": 0,
       "contract": null,
       "notes": ""
@@ -214,6 +214,23 @@
       "verification": [
         "NEEDS_HUMAN stall row names item, file, and next action (e.g. inspect docs/ship-loop/loop-run-log.md, then /ship:resume or /ship:pause)",
         "node --test passes with the stall test updated to the new pinned string"
+      ],
+      "passes": false,
+      "status": "pending",
+      "attempts": 0,
+      "contract": null,
+      "notes": ""
+    },
+    {
+      "id": "F-013",
+      "title": "false mechanical claim in pinned prose: design-intake cost-estimate attributes exit-1-until-done to stats; it belongs to gate — reword SKILL prose + append correction note to AGREED contract F-003 (append-only rule)",
+      "type": "bug",
+      "priority": 3,
+      "depends_on": [],
+      "verification": [
+        "grep -c \"stats exits 1\" skills/design-intake/SKILL.md returns 0, exit-code attribution corrected to gate",
+        "docs/ship-loop/contracts/F-003.md gains an appended correction note (original pin preserved)",
+        "node scripts/validate-repo.mjs passes"
       ],
       "passes": false,
       "status": "pending",
