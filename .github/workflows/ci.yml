@@ -14,6 +14,8 @@ jobs:
           node-version: 22
       - name: Unit tests (state engine + stop-hook gate)
         run: node --test
+      - name: Typecheck (JSDoc via tsc --noEmit; typescript is CI-only)
+        run: npx -y -p typescript@5 -p @types/node@22 sh -c 'tsc --noEmit --allowJs --checkJs --noImplicitAny --target es2022 --module nodenext --typeRoots "$(dirname "$(command -v tsc)")/../@types" scripts/ship-state.mjs scripts/validate-repo.mjs'
       - name: Structural validation (manifests, frontmatter, cross-references)
         run: node scripts/validate-repo.mjs
       - name: Shell syntax

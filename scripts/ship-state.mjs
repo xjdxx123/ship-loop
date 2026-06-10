@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-check
 /**
  * ship-loop state engine. Zero dependencies.
  * Owns docs/ship-loop/feature_list.json (+ learnings.json, gate markers).
@@ -12,17 +13,96 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
 
+/**
+ * @typedef {'feature'|'bug'|'hotfix'|'spec-conflict'} FeatureType
+ * @typedef {'pending'|'in_progress'|'passed'|'parked'|'reset'} Status
+ */
+
+/**
+ * One feature_list.json entry — field-for-field what validateFeature enforces.
+ * @typedef {object} Feature
+ * @property {string} id F-NNN (three or more digits)
+ * @property {string} title
+ * @property {FeatureType} type
+ * @property {1|2|3} priority
+ * @property {string[]} depends_on ids that must be passing first
+ * @property {string[]} verification at least one non-empty step
+ * @property {boolean} passes
+ * @property {Status} status
+ * @property {number} attempts non-negative integer
+ * @property {string|null} [contract]
+ * @property {string} [notes]
+ */
+
+/**
+ * The whole feature_list.json document.
+ * @typedef {object} FeatureDoc
+ * @property {number} version always 1
+ * @property {string} product
+ * @property {Feature[]} features
+ */
+
+/**
+ * computeStats() rollup — the stats/gate JSON shape.
+ * @typedef {object} Stats
+ * @property {number} total
+ * @property {number} passed
+ * @property {number} parked
+ * @property {number} pending
+ * @property {number} in_progress
+ * @property {number} open_bugs
+ * @property {boolean} done
+ */
+
+/**
+ * Transcript token sums — the five-key cost JSON, in output key order.
+ * @typedef {object} Totals
+ * @property {number} input
+ * @property {number} output
+ * @property {number} cache_read
+ * @property {number} cache_creation
+ * @property {number} total
+ */
+
+/**
+ * One learnings.json row.
+ * @typedef {object} Lesson
+ * @property {string} ts ISO timestamp
+ * @property {string} lesson
+ * @property {string[]} [tags]
+ */
+
+/**
+ * Claude Code Stop-hook stdin payload — only the fields the gate reads.
+ * @typedef {object} HookInput
+ * @property {string} [cwd]
+ * @property {string} [transcript_path]
+ */
+
 const TYPES = ['feature', 'bug', 'hotfix', 'spec-conflict'];
 const STATUSES = ['pending', 'in_progress', 'passed', 'parked', 'reset'];
 const TYPE_ORDER = { hotfix: 0, bug: 1, 'spec-conflict': 2, feature: 3 };
 
+/**
+ * Print one engine-prefixed line to stderr and exit 1.
+ * @param {string} msg
+ * @returns {never}
+ */
 function fail(msg) {
   process.stderr.write(`ship-state: ${msg}\n`);
   process.exit(1);
 }
 
+/**
+ * Split argv into the subcommand and its --flags. A flag followed by a
+ * non-flag token takes that token as its value; a trailing or valueless flag
+ * is boolean true — each command declares which value shapes it accepts.
+ * @param {string[]} argv
+ * @returns {{ cmd: string|undefined, flags: Record<string, *> }}
+ */
 function parseArgs(argv) {
   const [cmd, ...rest] = argv;
+  /** @type {Record<string, *>} */
   const flags = {};
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i];
@@ -37,9 +117,21 @@ function parseArgs(argv) {
   return { cmd, flags };
 }
 
+/** @param {string} dir product root @returns {string} the docs/ship-loop state dir */
 const stateDir = (dir) => join(dir, 'docs', 'ship-loop');
+/** @param {string} dir product root @returns {string} the feature_list.json path */
 const flPath = (dir) => join(stateDir(dir), 'feature_list.json');
 
+/**
+ * Validate one candidate feature row against the schema rules. The candidate
+ * is untrusted JSON: the runtime guards own every non-object/missing-field
+ * shape, so the parameter is typed as its loose object reading purely for the
+ * checker (CFA cannot narrow properties of an `any` base).
+ * @param {{ verification?: *[], depends_on?: *[] } & Record<string, *>} f
+ * @param {number} i index in the features array, for error labels
+ * @param {Set<string>} ids every id present in the document, for depends_on
+ * @returns {string[]} human-readable errors, empty when valid
+ */
 function validateFeature(f, i, ids) {
   const at = `features[${i}]`;
   const errs = [];
@@ -62,6 +154,12 @@ function validateFeature(f, i, ids) {
   return errs;
 }
 
+/**
+ * Validate a whole feature-list document. Untrusted JSON, same convention as
+ * validateFeature: runtime guards own the shape, the type serves the checker.
+ * @param {{ features?: *[] } & Record<string, *>} doc
+ * @returns {string[]} human-readable errors, empty when valid
+ */
 function validateDoc(doc) {
   const errs = [];
   if (typeof doc !== 'object' || doc === null) return ['document is not an object'];
@@ -80,6 +178,12 @@ function validateDoc(doc) {
   return errs;
 }
 
+/**
+ * Read + parse + revalidate the feature list (anti state-rot: every read
+ * validates). Exits via fail() on any problem.
+ * @param {string} dir product root
+ * @returns {FeatureDoc}
+ */
 function readDoc(dir) {
   const p = flPath(dir);
   if (!existsSync(p)) fail(`no feature list at ${p} (run: ship-state.mjs init)`);
@@ -94,6 +198,11 @@ function readDoc(dir) {
   return doc;
 }
 
+/**
+ * Revalidate then atomically write the feature list (tmp file + rename).
+ * @param {string} dir product root
+ * @param {FeatureDoc} doc
+ */
 function writeDoc(dir, doc) {
   const errs = validateDoc(doc);
   if (errs.length) fail(`refusing to write invalid feature list:\n  ${errs.join('\n  ')}`);
@@ -103,6 +212,10 @@ function writeDoc(dir, doc) {
   renameSync(tmp, p);
 }
 
+/**
+ * Read all of stdin as UTF-8; empty string when stdin is closed or unreadable.
+ * @returns {string}
+ */
 function readStdin() {
   try {
     return readFileSync(0, 'utf8');
@@ -111,7 +224,13 @@ function readStdin() {
   }
 }
 
+/**
+ * Derive the stats/gate rollup from a validated document.
+ * @param {FeatureDoc} doc
+ * @returns {Stats}
+ */
 function computeStats(doc) {
+  /** @param {Status} s @returns {number} */
   const by = (s) => doc.features.filter((f) => f.status === s).length;
   const open_bugs = doc.features.filter(
     (f) => (f.type === 'bug' || f.type === 'hotfix') && f.status !== 'passed' && f.status !== 'parked'
@@ -149,9 +268,16 @@ function computeStats(doc) {
  * this replaces.
  */
 const READ_CHUNK = 65536;
+/**
+ * @param {string} transcript path to the session's JSONL transcript
+ * @returns {{ totals: Totals, unreadable: boolean }}
+ */
 function sumTranscript(transcript) {
+  /** @type {Totals} */
   const totals = { input: 0, output: 0, cache_read: 0, cache_creation: 0, total: 0 };
+  /** @param {*} v @returns {number} the value when a non-negative integer, else 0 */
   const count = (v) => (Number.isInteger(v) && v >= 0 ? v : 0);
+  /** @param {string} line one transcript line, newline excluded */
   const addLine = (line) => {
     if (!line.trim()) return; // blank/whitespace-only lines are skipped silently
     let entry;
@@ -211,6 +337,9 @@ function sumTranscript(transcript) {
  * stdio swallows notify.sh's transport-less stderr fallback so the hook stays
  * silent on GUI-less machines. Never throws — a missing, broken, or hanging
  * notify.sh must not change the caller's exit code or output.
+ *
+ * @param {string} title notification title line
+ * @param {string} body notification body line
  */
 function notifyHuman(title, body) {
   try {
@@ -223,7 +352,12 @@ function notifyHuman(title, body) {
   }
 }
 
+/** @type {Record<string, (flags: Record<string, *>) => void>} */
 const cmds = {
+  /**
+   * Scaffold an empty validated feature list for a new product.
+   * @param {{ dir?: string, product?: string }} flags
+   */
   init({ dir, product }) {
     if (!dir || !product) fail('init requires --dir and --product');
     mkdirSync(stateDir(dir), { recursive: true });
@@ -231,12 +365,21 @@ const cmds = {
     writeDoc(dir, { version: 1, product, features: [] });
   },
 
+  /**
+   * Read + revalidate the feature list; prints "ok" when it holds.
+   * @param {{ dir?: string }} flags
+   */
   validate({ dir }) {
     if (!dir) fail('validate requires --dir');
     readDoc(dir);
     process.stdout.write('ok\n');
   },
 
+  /**
+   * Append one feature from a JSON object on stdin; prints the assigned id.
+   * Bad input fields are caught by the write-side revalidation.
+   * @param {{ dir?: string }} flags
+   */
   add({ dir }) {
     if (!dir) fail('add requires --dir');
     const doc = readDoc(dir);
@@ -266,6 +409,11 @@ const cmds = {
     process.stdout.write(`${id}\n`);
   },
 
+  /**
+   * Print the dependency-eligible pending features, ordered hotfix < bug <
+   * spec-conflict < feature, then priority, then id.
+   * @param {{ dir?: string, count?: string }} flags
+   */
   next({ dir, count }) {
     if (!dir) fail('next requires --dir');
     const doc = readDoc(dir);
@@ -282,6 +430,10 @@ const cmds = {
     process.stdout.write(JSON.stringify(eligible.slice(0, n), null, 2) + '\n');
   },
 
+  /**
+   * Mutate one feature: status, passes, an appended note, an attempt bump.
+   * @param {{ dir?: string, id?: string, status?: Status, passes?: string|boolean, note?: string, 'bump-attempts'?: string|boolean }} flags
+   */
   set({ dir, id, status, passes, note, 'bump-attempts': bump }) {
     if (!dir || !id) fail('set requires --dir and --id');
     const doc = readDoc(dir);
@@ -297,11 +449,20 @@ const cmds = {
     writeDoc(dir, doc);
   },
 
+  /**
+   * Print the pretty Stats rollup.
+   * @param {{ dir?: string }} flags
+   */
   stats({ dir }) {
     if (!dir) fail('stats requires --dir');
     process.stdout.write(JSON.stringify(computeStats(readDoc(dir)), null, 2) + '\n');
   },
 
+  /**
+   * One-line Stats plus an exit code: 0 when every feature is passed or
+   * parked, 1 while work remains.
+   * @param {{ dir?: string }} flags
+   */
   gate({ dir }) {
     if (!dir) fail('gate requires --dir');
     const stats = computeStats(readDoc(dir));
@@ -314,6 +475,9 @@ const cmds = {
    * the shared sumTranscript helper. Fail-safe for the F-002 budget gate: a
    * missing or unreadable file reports zeros on stdout + one stderr warning,
    * exit 0. --dir is accepted and ignored; cost never reads feature_list.json.
+   *
+   * @param {{ transcript?: string|boolean }} flags valueless --transcript is
+   * boolean true and fails the typeof guard like the absent flag does
    */
   cost({ transcript }) {
     if (typeof transcript !== 'string') fail('cost requires --transcript');
@@ -324,6 +488,10 @@ const cmds = {
     process.stdout.write(JSON.stringify(totals, null, 2) + '\n');
   },
 
+  /**
+   * Append {"lesson": "...", "tags": [...]} from stdin to learnings.json.
+   * @param {{ dir?: string }} flags
+   */
   learn({ dir }) {
     if (!dir) fail('learn requires --dir');
     mkdirSync(stateDir(dir), { recursive: true });
@@ -335,14 +503,20 @@ const cmds = {
     }
     if (typeof input.lesson !== 'string' || !input.lesson) fail('learn requires {"lesson": "..."}');
     const p = join(stateDir(dir), 'learnings.json');
+    /** @type {Lesson[]} */
     const arr = existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : [];
     arr.push({ ts: new Date().toISOString(), lesson: input.lesson, tags: input.tags ?? [] });
     writeFileSync(p, JSON.stringify(arr, null, 2) + '\n');
   },
 
+  /**
+   * Print learnings, optionally substring-filtered over lesson text + tags.
+   * @param {{ dir?: string, grep?: string }} flags
+   */
   lessons({ dir, grep }) {
     if (!dir) fail('lessons requires --dir');
     const p = join(stateDir(dir), 'learnings.json');
+    /** @type {Lesson[]} */
     const arr = existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : [];
     const out = grep
       ? arr.filter((l) => l.lesson.includes(grep) || (l.tags || []).some((t) => t.includes(grep)))
@@ -368,6 +542,7 @@ const cmds = {
    *   /ship:pause. Every step is best-effort — the hook never crashes.
    */
   'stop-hook'() {
+    /** @type {HookInput} */
     let input = {};
     try {
       input = JSON.parse(readStdin() || '{}');
